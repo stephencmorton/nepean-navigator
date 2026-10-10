@@ -9,6 +9,8 @@ test('service worker caches the shell and serves it offline at root and repo sub
     const handlers = {};
     const entries = new Map();
     let deleted = [];
+    const workerSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+    const version = workerSource.match(/const VERSION = '([^']+)'/)[1];
     const prefix = `nepean-navigator:${path}:`;
     const cache = {
       async addAll(urls) {
@@ -20,17 +22,17 @@ test('service worker caches the shell and serves it offline at root and repo sub
       },
       async match(url) {return entries.get(url);},
     };
-    vm.runInNewContext(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), {
+    vm.runInNewContext(workerSource, {
       URL,
       self: {location: {href: base + 'sw.js'}, clients: {async claim() {}}, addEventListener(name, fn) {handlers[name] = fn;}},
-      caches: {async open() {return cache;}, async keys() {return [prefix + 'v0', prefix + 'v1', 'other-app'];}, async delete(name) {deleted.push(name);}},
+      caches: {async open() {return cache;}, async keys() {return [prefix + 'v0', prefix + version, 'other-app'];}, async delete(name) {deleted.push(name);}},
       fetch() {throw new Error('Offline');},
     });
     let pending;
     handlers.install({waitUntil(promise) {pending = promise;}}); await pending;
     handlers.activate({waitUntil(promise) {pending = promise;}}); await pending;
     assert.deepEqual(deleted, [prefix + 'v0']);
-    for (const name of ['', '?test=1', 'index.html', 'app.js', 'routing.js', 'data.js', 'style.css']) {
+    for (const name of ['', '?test=1', 'index.html', 'app.js', 'routing.js', 'data.js', 'style.css', 'public/nepean_infographic.png']) {
       let response;
       handlers.fetch({request: {url: base + name, method: 'GET', mode: name === '' || name.startsWith('?') || name === 'index.html' ? 'navigate' : 'cors'}, respondWith(promise) {response = promise;}});
       assert.ok(await response, `offline response for ${base + name}`);

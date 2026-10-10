@@ -1,9 +1,9 @@
 // Bump VERSION whenever a deployed app-shell file changes.
-const VERSION = 'v1';
+const VERSION = 'v5';
 const BASE = new URL('./', self.location.href);
 const PREFIX = `nepean-navigator:${BASE.pathname}:`;
 const CACHE = PREFIX + VERSION;
-const ASSETS = ['index.html', 'app.js', 'routing.js', 'data.js', 'style.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'].map(path => new URL(path, BASE).href);
+const ASSETS = ['index.html', 'app.js', 'routing.js', 'data.js', 'style.css', 'manifest.webmanifest', 'icons/helmet-32.png', 'icons/helmet-192.png', 'icons/helmet-512.png', 'public/nepean_infographic.png'].map(path => new URL(path, BASE).href);
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   // Wait for existing tabs to close before activating a new shell version.

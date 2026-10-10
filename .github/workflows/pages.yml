@@ -38,6 +38,8 @@ jobs:
           mkdir _site
           cp index.html app.js routing.js data.js style.css manifest.webmanifest sw.js _site/
           cp -r icons _site/
+          mkdir _site/public
+          cp public/nepean_infographic.png _site/public/
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site

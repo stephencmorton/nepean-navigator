@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#174b43">
+  <meta name="theme-color" content="#8300e8">
   <meta name="description" content="Find your way between rooms at Nepean High School, even offline.">
   <title>Nepean HS Navigator</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icons/icon-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="icon" href="./icons/helmet-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/helmet-192.png">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
 </head>
@@ -19,13 +19,18 @@
       <label for="start-room">Starting room</label>
       <input id="start-room" name="start" type="text" inputmode="numeric" maxlength="4" placeholder="2205" aria-describedby="room-help" required>
       <label for="end-room">Destination room</label>
-      <input id="end-room" name="end" type="text" inputmode="numeric" maxlength="4" placeholder="3341" aria-describedby="room-help" required>
+      <input id="end-room" enterkeyhint="go" name="end" type="text" inputmode="numeric" maxlength="4" placeholder="3341" aria-describedby="room-help" required>
       <p id="room-help">Enter four digits, including a leading zero for ground-floor rooms. The library is room 2205.</p>
       <button type="submit">Get directions <span aria-hidden="true">→</span></button>
     </form>
     <p id="error" role="alert" hidden></p>
-    <section id="result" aria-labelledby="route-title" aria-live="polite" hidden><h2 id="route-title">Your route</h2><ol id="steps"></ol></section>
-    <aside><strong>About these directions</strong><p>This prototype uses an unverified school map supplied by a parent. Some connections are missing. Routes may use stairs; step-free access is not mapped. Guidance (2201) is on a half-level below the second floor.</p></aside>
+    <section id="result" aria-labelledby="route-title" hidden>
+      <div class="route-header"><h2 id="route-title" tabindex="-1">Your route</h2><button id="change-route" class="secondary" type="button" aria-controls="navigation">Change rooms</button></div>
+      <p id="route-summary"></p>
+      <ol id="steps"></ol>
+    </section>
+    <p class="room-guide"><a href="./public/nepean_infographic.png" target="_blank" rel="noopener" aria-label="Room numbering explained (opens in a new tab)">Room numbering explained <span aria-hidden="true">↗</span></a></p>
+    <aside><details><summary>About these directions</summary><p>This prototype uses an unverified school map supplied by a parent. Some connections are missing. Routes may use stairs; step-free access is not mapped. Guidance (2201) is on a half-level below the second floor.</p></details></aside>
     <footer><p id="offline-status" role="status">Preparing offline access…</p></footer>
     <noscript><p>Enable JavaScript to find a route.</p></noscript>
   </main>
