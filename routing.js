@@ -66,7 +66,7 @@ export function navigate(startValue, endValue) {
   if (!path) return {path: null, steps: ['No route found. The school map may be missing a connection.']};
   const steps = [describeRoom(start)];
   if (start.number === end.number) steps.push("You're already at the destination.");
-  else if (end.number === school.guidanceRoom) steps.push(school.guidanceInstructions);
+  else if (end.number === school.guidanceRoom) steps.push(...school.guidanceInstructions);
   else {
     for (let i = 1; i < path.length; i++) steps.push(describeStep(path[i - 1], path[i]));
     steps.push(`Walk on the ${floorName(end.floor)} to reach ${describeRoom(end)}.`);

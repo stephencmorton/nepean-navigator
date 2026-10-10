@@ -14,7 +14,7 @@ test('library to Music/Auditorium and reverse route', () => {
 test('same room, different room on same floor, and guidance half-level', () => {
   assert.match(navigate('2205', '2205').steps[1], /already/);
   assert.match(navigate('2205', '2206').steps[1], /Walk.*2206/);
-  for (const start of ['2205', '3341']) assert.match(navigate(start, '2201').steps[1], /half-level/);
+  for (const start of ['2205', '3341']) assert.match(navigate(start, '2201').steps.at(-1), /half-level/);
 });
 test('gym changes floor across buildings; disconnected map reports no route', () => {
   assert.deepEqual(navigate('0201', '1501').path, ['2-0', '5-1']);

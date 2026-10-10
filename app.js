@@ -39,15 +39,57 @@ form.addEventListener('submit', (event) => {
   }
 });
 
-const status = document.querySelector('#offline-status');
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       await navigator.serviceWorker.register(new URL('./sw.js', import.meta.url));
-      await navigator.serviceWorker.ready;
-      status.textContent = 'Ready for offline use.';
-    } catch {
-      status.textContent = 'Offline access unavailable. You can still use directions while online.';
+    } catch (exception) {
+      console.warn('Offline access unavailable.', exception);
     }
   });
-} else status.textContent = 'This browser does not support offline access.';
+}
+
+const installControl = document.querySelector('#install-control');
+const installButton = document.querySelector('#install-app');
+const installHelp = document.querySelector('#install-help');
+const standalone = window.matchMedia('(display-mode: standalone)');
+let installPrompt = null;
+let installed = false;
+function refreshInstallControl() {
+  installControl.hidden = installed || standalone.matches || navigator.standalone === true;
+}
+refreshInstallControl();
+standalone.addEventListener('change', refreshInstallControl);
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  refreshInstallControl();
+});
+window.addEventListener('appinstalled', () => {
+  installed = true;
+  installPrompt = null;
+  refreshInstallControl();
+});
+installButton.addEventListener('click', async () => {
+  if (installPrompt) {
+    const prompt = installPrompt;
+    installPrompt = null;
+    installButton.disabled = true;
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        installed = true;
+        refreshInstallControl();
+      }
+    } catch {
+      installHelp.hidden = false;
+      installButton.setAttribute('aria-expanded', 'true');
+    } finally {
+      installButton.disabled = false;
+    }
+  } else {
+    installHelp.hidden = !installHelp.hidden;
+    installButton.setAttribute('aria-expanded', String(!installHelp.hidden));
+  }
+});

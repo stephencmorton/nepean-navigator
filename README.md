@@ -27,7 +27,7 @@ cd ..
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Visit http://localhost:8000/nepean-navigator/. In browser DevTools, inspect Application → Manifest and Service Workers. Wait for “Ready for offline use”, turn on Network → Offline, reload, and navigate from 2205 to 3341. Test invalid input, 0201 → 1501, 2205 → 2206, 2205 → 2201, and disconnected 1401 → 2205. Test a narrow mobile viewport and keyboard submission. Installation UI varies by browser; on iOS use Add to Home Screen.
+Visit http://localhost:8000/nepean-navigator/. In browser DevTools, inspect Application → Manifest and Service Workers. Wait for the service worker to finish installing, turn on Network → Offline, reload, and navigate from 2205 to 3341. Test invalid input, 0201 → 1501, 2205 → 2206, 2205 → 2201, and disconnected 1401 → 2205. Test a narrow mobile viewport and keyboard submission. Installation UI varies by browser; on iOS use Add to Home Screen.
 
 ## School map and routing
 

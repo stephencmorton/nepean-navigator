@@ -14,7 +14,7 @@
 </head>
 <body>
   <main>
-    <header><p class="eyebrow">NEPEAN HIGH SCHOOL</p><h1>Find your way.</h1><p>Directions from one room to the next.</p></header>
+    <header><h1 class="brand"><img src="./icons/helmet-192.png" width="44" height="44" alt=""> <span>NHS Wayfinder</span></h1><p>Directions from one room to the next.</p></header>
     <form id="navigation" novalidate>
       <label for="start-room">Starting room</label>
       <input id="start-room" name="start" type="text" inputmode="numeric" maxlength="4" placeholder="2205" aria-describedby="room-help" required>
@@ -31,7 +31,17 @@
     </section>
     <p class="room-guide"><a href="./public/nepean_infographic.png" target="_blank" rel="noopener" aria-label="Room numbering explained (opens in a new tab)">Room numbering explained <span aria-hidden="true">↗</span></a></p>
     <aside><details><summary>About these directions</summary><p>This prototype uses an unverified school map supplied by a parent. Some connections are missing. Routes may use stairs; step-free access is not mapped. Guidance (2201) is on a half-level below the second floor.</p></details></aside>
-    <footer><p id="offline-status" role="status">Preparing offline access…</p></footer>
+    <footer>
+      <div id="install-control" hidden>
+        <button id="install-app" class="secondary" type="button" aria-expanded="false" aria-controls="install-help" aria-describedby="install-description">Save app for offline use</button>
+        <p id="install-description">Add to your Home Screen for quick access, even without internet.</p>
+        <div id="install-help" hidden>
+          <p><strong>iPhone / iPad:</strong> In Safari, tap Share, then Add to Home Screen. Enable Open as Web App if offered, then tap Add.</p>
+          <p><strong>Android:</strong> In Chrome, open the ⋮ menu, then tap Add to Home screen or Install app.</p>
+          <p>Open the app online once to download it for offline use.</p>
+        </div>
+      </div>
+    </footer>
     <noscript><p>Enable JavaScript to find a route.</p></noscript>
   </main>
 </body>
