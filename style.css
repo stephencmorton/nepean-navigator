@@ -58,3 +58,6 @@ button:disabled {opacity: .65; cursor: wait;}
 footer {margin-top: .75rem;}
 
 #install-description {margin: .4rem 0 0;}
+
+.instruction-action {display: inline-flex; align-items: center; gap: .25rem; vertical-align: middle;}
+.instruction-icon {width: 1.35em; height: 1.35em; flex: 0 0 auto;}

@@ -35,6 +35,10 @@ Visit http://localhost:8000/nepean-navigator/. In browser DevTools, inspect Appl
 
 Room numbers encode floor, building, then two room digits. This is not a room inventory: valid mapped building/floor pairs do not guarantee a room exists. The original topology is retained, including its missing connections. Math/Science has stairs but no link to the other buildings. Main building split levels remain simplified; guidance 2201 has explicit half-level instructions. Accessible/step-free routes are not mapped. Verify the topology with the school before relying on it.
 
+In `connections`, both keys and destination values use **`building-floor`**, not floor-building. For example, `'2-0': ['5-1']` connects Main (building 2), ground floor (0), to Gym (building 5), first floor (1). Each link is automatically bidirectional; you only need to list it once. Add only connections that exist in the school.
+
+Room numbers use **floor-building-room digits**: `2412` is floor 2, building 4, room digits 12, so its graph node is `4-2`. In `staircases`, the key is the building number and the array lists the floors connected by stairs; `4: [0, 1, 2]` connects Math/Science's ground, first, and second floors within that building.
+
 Different rooms on the same floor now receive walking directions; only the identical room reports arrival. Stair directions name the target floor without incorrectly describing a multi-floor climb as one level.
 
 ## Offline updates
