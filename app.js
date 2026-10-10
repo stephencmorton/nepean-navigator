@@ -1,4 +1,4 @@
-import {navigate} from './routing.js';
+import {navigate, resolveRoomNumber, constrainRoomInput} from './routing.js';
 
 const form = document.querySelector('#navigation');
 const error = document.querySelector('#error');
@@ -7,6 +7,23 @@ const steps = document.querySelector('#steps');
 const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
 const changeRoute = document.querySelector('#change-route');
+for (const input of [form.elements.start, form.elements.end]) {
+  const constrain = () => {
+    const value = input.value;
+    const constrained = constrainRoomInput(value);
+    if (value !== constrained) {
+      const cursor = input.selectionStart ?? value.length;
+      const position = constrainRoomInput(value.slice(0, cursor)).length;
+      input.value = constrained;
+      input.setSelectionRange(position, position);
+    }
+  };
+  input.addEventListener('input', (event) => {
+    if (!event.isComposing) constrain();
+  });
+  input.addEventListener('compositionend', constrain);
+  input.addEventListener('change', () => { input.value = resolveRoomNumber(input.value); });
+}
 changeRoute.addEventListener('click', () => {
   form.hidden = false;
   result.hidden = true;
@@ -19,6 +36,8 @@ form.addEventListener('submit', (event) => {
   result.hidden = true;
   steps.replaceChildren();
   try {
+    form.elements.start.value = resolveRoomNumber(form.elements.start.value);
+    form.elements.end.value = resolveRoomNumber(form.elements.end.value);
     const route = navigate(form.elements.start.value, form.elements.end.value);
     for (const text of route.steps) {
       const item = document.createElement('li');

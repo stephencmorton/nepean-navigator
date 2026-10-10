@@ -20,9 +20,23 @@ export function buildGraph(data = school) {
 }
 
 export const graph = buildGraph();
+// Keep names editable, but numeric entries contain at most four digits.
+export function constrainRoomInput(value) {
+  const text = String(value);
+  return /^\s*\d/.test(text) ? text.replace(/\D/g, '').slice(0, 4) : text;
+}
+export function resolveRoomNumber(value) {
+  const entered = String(value).trim();
+  const alias = entered.toLowerCase();
+  const matches = Object.keys(school.roomAliases).filter(name => alias.includes(name));
+  return matches.length === 1 ? school.roomAliases[matches[0]] : entered;
+}
 export function parseRoom(value) {
-  const number = String(value).trim();
-  if (!/^\d{4}$/.test(number)) throw new Error('Please enter four-digit room numbers (e.g. 2205 or 3341).');
+  const number = resolveRoomNumber(value);
+  if (Object.keys(school.roomAliases).filter(name => number.toLowerCase().includes(name)).length > 1) {
+    throw new Error('Please enter just one place: office, library, or guidance.');
+  }
+  if (!/^\d{4}$/.test(number)) throw new Error('Please enter a four-digit room number or a known room name (library, guidance, or office).');
   const floor = Number(number[0]);
   const building = Number(number[1]);
   const node = `${building}-${floor}`;

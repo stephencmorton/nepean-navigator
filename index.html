@@ -17,10 +17,10 @@
     <header><h1 class="brand"><img src="./icons/helmet-192.png" width="44" height="44" alt=""> <span>NHS Wayfinder</span></h1><p>Directions from one room to the next.</p></header>
     <form id="navigation" novalidate>
       <label for="start-room">Starting room</label>
-      <input id="start-room" name="start" type="text" inputmode="numeric" maxlength="4" placeholder="2205" aria-describedby="room-help" required>
+      <input id="start-room" name="start" type="text" maxlength="40" autocapitalize="none" spellcheck="false" placeholder="2205" aria-describedby="room-help" required>
       <label for="end-room">Destination room</label>
-      <input id="end-room" enterkeyhint="go" name="end" type="text" inputmode="numeric" maxlength="4" placeholder="3341" aria-describedby="room-help" required>
-      <p id="room-help">Enter four digits, including a leading zero for ground-floor rooms. The library is room 2205.</p>
+      <input id="end-room" enterkeyhint="go" name="end" type="text" maxlength="40" autocapitalize="none" spellcheck="false" placeholder="3341" aria-describedby="room-help" required>
+      <p id="room-help">Enter a room number, library, guidance, or office. Include the leading zero for ground-floor rooms.</p>
       <button type="submit">Get directions <span aria-hidden="true">→</span></button>
     </form>
     <p id="error" role="alert" hidden></p>

@@ -27,13 +27,15 @@ cd ..
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Visit http://localhost:8000/nepean-navigator/. In browser DevTools, inspect Application → Manifest and Service Workers. Wait for the service worker to finish installing, turn on Network → Offline, reload, and navigate from 2205 to 3341. Test invalid input, 0201 → 1501, 2205 → 2206, 2205 → 2201, and disconnected 1401 → 2205. Test a narrow mobile viewport and keyboard submission. Installation UI varies by browser; on iOS use Add to Home Screen.
+Visit http://localhost:8000/nepean-navigator/. In browser DevTools, inspect Application → Manifest and Service Workers. Wait for the service worker to finish installing, turn on Network → Offline, reload, and navigate from 2205 to 3341. Test invalid input, 0201 → 1501, 2205 → 2206, 2205 → 2201, and 2412 → 1203. Test a narrow mobile viewport and keyboard submission. Installation UI varies by browser; on iOS use Add to Home Screen.
 
 ## School map and routing
 
+`data.js` also defines `roomAliases`: case-insensitive names such as `library` (2205) and `guidance` (2201), and `office` (2204) accepted in either room field. Names are recognized anywhere in the text, regardless of capitalization (for example, “the LIBRARY please”), and replaced with room numbers when leaving the field or submitting the form. Text naming multiple places must be narrowed to one place. Entries starting with a digit are restricted to four digits while typing or pasting; leading zeros are preserved. Office 2204 is a provisional number supplied by the user: the floor is correct, but the exact room is unconfirmed. Add further verified names and numbers to that mapping.
+
 `data.js` holds building names, staircases, inter-building links, and guidance instructions. `routing.js` handles room parsing, bidirectional graph construction, breadth-first shortest-path search, and text instructions. `app.js` renders text safely and registers the worker.
 
-Room numbers encode floor, building, then two room digits. This is not a room inventory: valid mapped building/floor pairs do not guarantee a room exists. The original topology is retained, including its missing connections. Math/Science has stairs but no link to the other buildings. Main building split levels remain simplified; guidance 2201 has explicit half-level instructions. Accessible/step-free routes are not mapped. Verify the topology with the school before relying on it.
+Room numbers encode floor, building, then two room digits. This is not a room inventory: valid mapped building/floor pairs do not guarantee a room exists. Math/Science connects to Main on the first floor. Main building split levels remain simplified; guidance 2201 has explicit half-level instructions. Accessible/step-free routes are not mapped. Verify the topology with the school before relying on it.
 
 In `connections`, both keys and destination values use **`building-floor`**, not floor-building. For example, `'2-0': ['5-1']` connects Main (building 2), ground floor (0), to Gym (building 5), first floor (1). Each link is automatically bidirectional; you only need to list it once. Add only connections that exist in the school.
 
