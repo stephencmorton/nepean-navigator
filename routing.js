@@ -35,7 +35,7 @@ export function roomLabel(number) {
 }
 export function parseRoom(value) {
   const number = String(value).trim();
-  if (!/^\d{4}$/.test(number)) throw new Error('Please enter a four-digit room number. A leading zero is required for a room on the basement floor.');
+  if (!/^\d{4}$/.test(number)) throw new Error('Please enter a four-digit room number. A leading zero is required for a room on the basement (floor 0).');
   const floor = Number(number[0]);
   const building = Number(number[1]);
   const node = `${building}-${floor}`;
@@ -44,7 +44,7 @@ export function parseRoom(value) {
 }
 
 export function floorName(floor) {
-  return `${['Ground', '1st', '2nd', '3rd'][floor] ?? `${floor}th`} floor`;
+  return ['basement (floor 0)', '1st (ground) floor', '2nd floor', '3rd floor'][floor] ?? `${floor}th floor`;
 }
 export function describeRoom(room) {
   const level = school.knownRooms[room.number]?.level ?? floorName(room.floor);

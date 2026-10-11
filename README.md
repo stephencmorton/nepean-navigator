@@ -18,7 +18,7 @@ Node.js 22+ is used only for tests; there are no npm packages to install:
 node --test
 ```
 
-Tests cover parsing, shortest routes, graph symmetry, ground-floor rooms, guidance, same-floor destinations, missing connections, and service-worker caching at both `/` and `/nepean-navigator/` using a simulated worker environment.
+Tests cover parsing, shortest routes, graph symmetry, rooms on the basement (floor 0), guidance, same-floor destinations, missing connections, and service-worker caching at both `/` and `/nepean-navigator/` using a simulated worker environment.
 
 For a local repository-subpath check, serve the parent folder:
 

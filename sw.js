@@ -1,5 +1,5 @@
 // Bump VERSION whenever a deployed app-shell file changes.
-const VERSION = 'v21';
+const VERSION = 'v24';
 const BASE = new URL('./', self.location.href);
 const PREFIX = `nepean-navigator:${BASE.pathname}:`;
 const CACHE = PREFIX + VERSION;

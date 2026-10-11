@@ -2,7 +2,7 @@
 export const school = {
   buildings: {1: 'North Cafeteria', 2: 'Main', 3: 'Music/Auditorium', 4: 'Math/Science', 5: 'Gym'},
   staircases: {1: [1, 2], 2: [0, 1, 2, 3], 3: [1, 3], 4: [0, 1, 2]},
-  connections: {'1-1': ['2-1'], '1-3': ['2-3'], '2-0': ['5-1'], '2-1': ['3-1', '4-1'], '2-3': ['3-3']},
+  connections: {'1-1': ['2-1'], '1-3': ['2-3'], '2-0': ['5-0'], '2-1': ['3-1', '4-1'], '2-3': ['3-3']},
   mainStairwellSides: {1: 'south', 3: 'north', 4: 'north', 5: 'north'},
   knownRooms: {
     '2205': {name: 'Library'},
