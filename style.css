@@ -26,7 +26,7 @@ footer {color: #62516f;}
 .route-header h2 {margin: 0;}
 .secondary {width: auto; min-height: 44px; padding: .6rem .8rem; background: #f7f3fc; color: #6900ba; border: 1px solid #ded1ed;}
 .secondary:hover {background: #eee1fb;}
-#route-summary {font-weight: 650; color: #6900ba; margin: .75rem 0 1.25rem;}
+#route-summary {font-weight: 650; color: #6900ba; margin: .75rem 0 1.25rem; scroll-margin-top: .5rem;}
 #steps {padding-left: 1.5rem; margin-bottom: 0;}
 #steps li {display: list-item; width: 100%; padding: .6rem 0 .9rem .5rem; border-bottom: 1px solid #eee5f5; margin-bottom: .5rem;}
 #steps li:last-child {border-bottom: 0;}

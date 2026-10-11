@@ -121,7 +121,7 @@ form.addEventListener('submit', (event) => {
     form.hidden = Boolean(route.path);
     document.body.classList.toggle('showing-route', Boolean(route.path));
     title.focus({preventScroll: true});
-    result.scrollIntoView({block: 'start'});
+    (route.path ? summary : result).scrollIntoView({block: 'start'});
   } catch (exception) {
     error.textContent = exception.message;
     error.hidden = false;
