@@ -1,33 +1,8 @@
 {
   "name": "nepean-hs-navigator",
-  "version": "1.0.0",
-  "homepage": "https://stephen.c.morton.github.io/nepean-navigator",
-  "description": "",
-  "keywords": [],
-  "main": "src/index.tsx",
-  "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@types/react": "19.0.0",
-    "@types/react-dom": "19.0.0",
-    "typescript": "5.7.2",
-    "vite": "^5.0.11",
-    "@vitejs/plugin-react": "^4.2.1",
-    "gh-pages": "^6.3.0"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
-  },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not ie <= 11",
-    "not op_mini all"
-  ]
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dependency-free offline room navigation",
+  "scripts": {"test": "node --test"}
 }
