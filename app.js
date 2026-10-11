@@ -8,12 +8,16 @@ const steps = document.querySelector('#steps');
 const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
 const changeRoute = document.querySelector('#change-route');
-const knownRooms = document.querySelector('#known-rooms');
-for (const [number, name] of Object.entries(school.knownRooms)) {
-  const item = document.createElement('li');
-  item.textContent = `${number} — ${name}`;
-  knownRooms.append(item);
+function renderList(list, texts) {
+  list.replaceChildren(...texts.map(text => {
+    const item = document.createElement('li');
+    item.textContent = text;
+    return item;
+  }));
 }
+
+const knownRooms = document.querySelector('#known-rooms');
+renderList(knownRooms, Object.entries(school.knownRooms).map(([number, room]) => `${number} — ${room.name}`));
 for (const input of [form.elements.start, form.elements.end]) {
   const constrain = () => {
     const value = input.value;
@@ -29,6 +33,13 @@ for (const input of [form.elements.start, form.elements.end]) {
     if (!event.isComposing) constrain();
   });
   input.addEventListener('compositionend', constrain);
+  input.addEventListener('paste', event => {
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    // Clean clipboard text before the browser's maxlength can truncate its digits.
+    input.setRangeText(constrainRoomInput(event.clipboardData.getData('text')), input.selectionStart, input.selectionEnd, 'end');
+    constrain();
+  });
 }
 changeRoute.addEventListener('click', () => {
   form.hidden = false;
@@ -43,11 +54,7 @@ form.addEventListener('submit', (event) => {
   steps.replaceChildren();
   try {
     const route = navigate(form.elements.start.value, form.elements.end.value);
-    for (const text of route.steps) {
-      const item = document.createElement('li');
-      item.textContent = text;
-      steps.append(item);
-    }
+    renderList(steps, route.steps);
     summary.textContent = `${roomLabel(form.elements.start.value.trim())} → ${roomLabel(form.elements.end.value.trim())}`;
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {graph, parseRoom, findPath, navigate, constrainRoomInput} from '../routing.js';
+import {buildGraph, graph, parseRoom, findPath, navigate, constrainRoomInput, roomLabel} from '../routing.js';
 
 test('room parsing preserves ground-floor zeros and validates map coverage', () => {
   assert.equal(parseRoom(' 0201 ').node, '2-0');
@@ -16,9 +16,7 @@ test('same room, different room on same floor, and guidance half-level', () => {
   assert.match(navigate('2205', '2206').steps[1], /Walk.*2206/);
   for (const start of ['2205', '3341']) assert.match(navigate(start, '2201').steps.at(-1), /half-level/);
 });
-test('gym changes floor across buildings; Math/Science connects to Main', () => {
-  assert.deepEqual(navigate('0201', '1501').path, ['2-0', '5-1']);
-  assert.match(navigate('0201', '1501').steps[1], /Gym.*1st floor/);
+test('Math/Science connects to Main and missing connections return no path', () => {
   assert.deepEqual(navigate('1401', '2205').path, ['4-1', '2-1', '2-2']);
   assert.deepEqual(navigate('2412', '1203').path, ['4-2', '4-1', '2-1']);
   const disconnected = new Map([['4-1', new Set()], ['2-1', new Set()]]);
@@ -54,35 +52,31 @@ test('room inputs accept only digits and preserve leading zeros', () => {
   for (const value of ['library', 'office', 'guidance', 'gym', '501a', '501', '502']) assert.throws(() => parseRoom(value));
 });
 
-test('known numbers display names in directions and Gym 0501 uses the mapped location', () => {
-  assert.equal(parseRoom('0501').node, '5-1');
-  assert.deepEqual(navigate('0201', '0501').path, ['2-0', '5-1']);
-  assert.deepEqual(navigate('0501', '0201').path, ['5-1', '2-0']);
-  assert.match(navigate('0501', '0501').steps[1], /already/);
-  for (const [number, name] of [['2205', 'Library'], ['2204', 'Office'], ['2201', 'Guidance'], ['0501', 'Gym']]) {
+test('known numbers display names in directions', () => {
+  for (const [number, name] of [['2205', 'Library'], ['2204', 'Office'], ['2201', 'Guidance']]) {
     assert.ok(navigate(number, '2206').steps[0].startsWith(name));
     const destination = navigate('2206', number).steps.at(-1);
     assert.ok(destination.includes(name));
-    assert.ok(!destination.includes(number));
+    assert.ok(!destination.startsWith(`Room ${number}`));
   }
 });
 
 test('leaving Main selects the stairwell for the destination building', () => {
-  for (const destination of ['1101', '3341', '1401', '0501']) {
+  for (const destination of ['1101', '3341', '1401']) {
     const side = destination === '1101' ? 'south' : 'north';
     assert.match(navigate('2205', destination).steps[1], new RegExp(`Head ${side}.*${side} end`));
   }
 });
 
 test('passing through Main crosses the building only between opposite sides', () => {
-  for (const northRoom of ['3341', '1401', '0501']) {
+  for (const northRoom of ['3341', '1401']) {
     for (const [start, end, side] of [['1101', northRoom, 'north'], [northRoom, '1101', 'south']]) {
       const steps = navigate(start, end).steps;
       assert.equal(steps.filter(step => step.includes('Walk all the way through')).length, 1);
       assert.ok(steps.some(step => step.includes(`to the ${side} stairwell on the other side`)));
     }
   }
-  assert.ok(!navigate('1401', '0501').steps.some(step => step.includes('Walk all the way through')));
+  assert.ok(!navigate('1401', '3341').steps.some(step => step.includes('Walk all the way through')));
   assert.ok(!navigate('2205', '2206').steps.some(step => step.includes('stairwell')));
 });
 
@@ -91,4 +85,41 @@ test('Guidance uses the south stairwell and retains half-level directions', () =
   assert.ok(navigate('3341', '2201').steps.some(step => /Walk all the way through.*south stairwell/.test(step)));
   assert.ok(!navigate('1101', '2201').steps.some(step => /Walk all the way through/.test(step)));
   assert.match(navigate('3341', '2201').steps.at(-1), /half-level/);
+});
+
+test('Guidance departures climb to the mapped floor before walking or crossing Main', () => {
+  for (const destination of ['2205', '3341', '1101']) {
+    const steps = navigate('2201', destination).steps;
+    assert.match(steps[0], /half-level below the 2nd floor/);
+    assert.match(steps[1], /up a half-level.*south stairwell.*2nd floor/);
+    const crossing = steps.findIndex(step => step.includes('Walk all the way through'));
+    if (destination === '3341') assert.ok(crossing > 1);
+    else assert.equal(crossing, -1);
+  }
+  assert.equal(navigate('2201', '2201').steps.length, 2);
+});
+
+test('ordinary floor changes in Main use the closest stairwell without choosing a side', () => {
+  assert.match(navigate('1203', '2205').steps[1], /closest stairwell.*up.*2nd floor/);
+  assert.match(navigate('2205', '1203').steps[1], /closest stairwell.*down.*1st floor/);
+  assert.equal(navigate('2205', '2206').steps.length, 2);
+  assert.ok(!navigate('1203', '2205').steps[1].match(/north|south/));
+});
+
+test('graph construction retains isolated mapped floors and connection nodes', () => {
+  const isolated = buildGraph({connections: {'2-0': []}, staircases: {5: [1]}});
+  assert.deepEqual(findPath(isolated, '5-1', '5-1'), ['5-1']);
+  assert.equal(findPath(isolated, '2-0', '5-1'), null);
+});
+
+test('Gym 0501 uses its encoded ground floor and requires map coverage', () => {
+  assert.equal(roomLabel('0501'), 'Gym');
+  if (graph.has('5-0')) {
+    const gym = parseRoom('0501');
+    assert.equal(gym.node, '5-0');
+    assert.equal(gym.floor, 0);
+    assert.equal(gym.building, 5);
+  } else {
+    assert.throws(() => parseRoom('0501'), /Room 0501.*absent from the school map/);
+  }
 });

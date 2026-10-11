@@ -32,7 +32,7 @@ test('service worker caches the shell and serves it offline at root and repo sub
     handlers.install({waitUntil(promise) {pending = promise;}}); await pending;
     handlers.activate({waitUntil(promise) {pending = promise;}}); await pending;
     assert.deepEqual(deleted, [prefix + 'v0']);
-    for (const name of ['', '?test=1', 'index.html', 'app.js', 'routing.js', 'data.js', 'style.css', 'public/nepean_infographic.png']) {
+    for (const name of ['', '?test=1', 'index.html', 'app.js', 'app.js?version=1', 'index.html?version=1', 'routing.js', 'data.js', 'style.css', 'public/nepean_infographic.png']) {
       let response;
       handlers.fetch({request: {url: base + name, method: 'GET', mode: name === '' || name.startsWith('?') || name === 'index.html' ? 'navigate' : 'cors'}, respondWith(promise) {response = promise;}});
       assert.ok(await response, `offline response for ${base + name}`);
