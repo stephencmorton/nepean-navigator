@@ -1,4 +1,5 @@
-import {navigate, resolveRoomNumber, constrainRoomInput} from './routing.js';
+import {school} from './data.js';
+import {navigate, roomLabel, constrainRoomInput} from './routing.js';
 
 const form = document.querySelector('#navigation');
 const error = document.querySelector('#error');
@@ -7,6 +8,12 @@ const steps = document.querySelector('#steps');
 const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
 const changeRoute = document.querySelector('#change-route');
+const knownRooms = document.querySelector('#known-rooms');
+for (const [number, name] of Object.entries(school.knownRooms)) {
+  const item = document.createElement('li');
+  item.textContent = `${number} — ${name}`;
+  knownRooms.append(item);
+}
 for (const input of [form.elements.start, form.elements.end]) {
   const constrain = () => {
     const value = input.value;
@@ -22,7 +29,6 @@ for (const input of [form.elements.start, form.elements.end]) {
     if (!event.isComposing) constrain();
   });
   input.addEventListener('compositionend', constrain);
-  input.addEventListener('change', () => { input.value = resolveRoomNumber(input.value); });
 }
 changeRoute.addEventListener('click', () => {
   form.hidden = false;
@@ -36,15 +42,13 @@ form.addEventListener('submit', (event) => {
   result.hidden = true;
   steps.replaceChildren();
   try {
-    form.elements.start.value = resolveRoomNumber(form.elements.start.value);
-    form.elements.end.value = resolveRoomNumber(form.elements.end.value);
     const route = navigate(form.elements.start.value, form.elements.end.value);
     for (const text of route.steps) {
       const item = document.createElement('li');
       item.textContent = text;
       steps.append(item);
     }
-    summary.textContent = `Room ${form.elements.start.value.trim()} → Room ${form.elements.end.value.trim()}`;
+    summary.textContent = `${roomLabel(form.elements.start.value.trim())} → ${roomLabel(form.elements.end.value.trim())}`;
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.

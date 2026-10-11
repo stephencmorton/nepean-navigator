@@ -46,31 +46,49 @@ test('all graph routes use symmetric edges and have shortest length', () => {
   }
 });
 
-test('room names resolve case-insensitively for either end of a route', () => {
-  assert.equal(parseRoom(' Library ').number, '2205');
-  assert.equal(parseRoom('GUIDANCE').number, '2201');
-  assert.equal(parseRoom(' Office ').number, '2204');
-  assert.deepEqual(navigate('office', 'library'), navigate('2204', '2205'));
-  assert.deepEqual(navigate('library', 'office'), navigate('2205', '2204'));
-  assert.deepEqual(navigate('library', '3341'), navigate('2205', '3341'));
-  assert.deepEqual(navigate('3341', 'guidance'), navigate('3341', '2201'));
-  assert.throws(() => parseRoom('toString'));
-  assert.throws(() => parseRoom('unknown room'));
-});
-
-test('numeric input is limited to four digits while room names remain editable', () => {
+test('room inputs accept only digits and preserve leading zeros', () => {
   for (const [input, expected] of [
     ['22055', '2205'], ['0201', '0201'], [' 02012 ', '0201'],
-    ['22a05', '2205'], ['2205 3341', '2205'], ['12', '12'],
-    ['library', 'library'], ['GUIDANCE', 'GUIDANCE'], ['office', 'office'], ['', ''],
+    ['22a05', '2205'], ['library', ''], ['GUIDANCE', ''], ['0501', '0501'],
   ]) assert.equal(constrainRoomInput(input), expected);
+  for (const value of ['library', 'office', 'guidance', 'gym', '501a', '501', '502']) assert.throws(() => parseRoom(value));
 });
 
-test('room names are recognized inside phrases without guessing between places', () => {
-  assert.equal(parseRoom('the LIBRARY please').number, '2205');
-  assert.equal(parseRoom('school office').number, '2204');
-  assert.equal(parseRoom('Go to Guidance!').number, '2201');
-  assert.equal(parseRoom('library (LIBRARY)').number, '2205');
-  assert.deepEqual(navigate('from the office', 'to the library'), navigate('2204', '2205'));
-  assert.throws(() => parseRoom('office or library'), /just one place/);
+test('known numbers display names in directions and Gym 0501 uses the mapped location', () => {
+  assert.equal(parseRoom('0501').node, '5-1');
+  assert.deepEqual(navigate('0201', '0501').path, ['2-0', '5-1']);
+  assert.deepEqual(navigate('0501', '0201').path, ['5-1', '2-0']);
+  assert.match(navigate('0501', '0501').steps[1], /already/);
+  for (const [number, name] of [['2205', 'Library'], ['2204', 'Office'], ['2201', 'Guidance'], ['0501', 'Gym']]) {
+    assert.ok(navigate(number, '2206').steps[0].startsWith(name));
+    const destination = navigate('2206', number).steps.at(-1);
+    assert.ok(destination.includes(name));
+    assert.ok(!destination.includes(number));
+  }
+});
+
+test('leaving Main selects the stairwell for the destination building', () => {
+  for (const destination of ['1101', '3341', '1401', '0501']) {
+    const side = destination === '1101' ? 'south' : 'north';
+    assert.match(navigate('2205', destination).steps[1], new RegExp(`Head ${side}.*${side} end`));
+  }
+});
+
+test('passing through Main crosses the building only between opposite sides', () => {
+  for (const northRoom of ['3341', '1401', '0501']) {
+    for (const [start, end, side] of [['1101', northRoom, 'north'], [northRoom, '1101', 'south']]) {
+      const steps = navigate(start, end).steps;
+      assert.equal(steps.filter(step => step.includes('Walk all the way through')).length, 1);
+      assert.ok(steps.some(step => step.includes(`to the ${side} stairwell on the other side`)));
+    }
+  }
+  assert.ok(!navigate('1401', '0501').steps.some(step => step.includes('Walk all the way through')));
+  assert.ok(!navigate('2205', '2206').steps.some(step => step.includes('stairwell')));
+});
+
+test('Guidance uses the south stairwell and retains half-level directions', () => {
+  assert.match(navigate('2205', '2201').steps[1], /Head south/);
+  assert.ok(navigate('3341', '2201').steps.some(step => /Walk all the way through.*south stairwell/.test(step)));
+  assert.ok(!navigate('1101', '2201').steps.some(step => /Walk all the way through/.test(step)));
+  assert.match(navigate('3341', '2201').steps.at(-1), /half-level/);
 });

@@ -61,3 +61,8 @@ footer {margin-top: .75rem;}
 
 .instruction-action {display: inline-flex; align-items: center; gap: .25rem; vertical-align: middle;}
 .instruction-icon {width: 1.35em; height: 1.35em; flex: 0 0 auto;}
+
+.known-rooms {font-size: .88rem; margin-bottom: .75rem; color: #62516f;}
+.known-rooms h2 {font-size: inherit; font-weight: 650; margin: 0 0 .35rem;}
+#known-rooms {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .75rem; list-style: none; padding: 0; margin: 0 0 .5rem;}
+#known-rooms li {padding: 0; margin: 0;}
