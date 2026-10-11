@@ -125,7 +125,7 @@ test('Gym 0501 uses its encoded basement floor and requires map coverage', () =>
   }
 });
 
-test('floor labels always include numbers for the basement and ground floor', () => {
+test('floor labels explain basement and ground floor only on their first mention per route', () => {
   assert.equal(floorName(0), 'basement (floor 0)');
   assert.equal(floorName(1), '1st (ground) floor');
   assert.equal(floorName(2), '2nd floor');
@@ -135,8 +135,16 @@ test('floor labels always include numbers for the basement and ground floor', ()
   ]) {
     const steps = navigate(start, end).steps;
     assert.ok(steps[1].includes(label));
-    assert.ok(steps.at(-1).includes(label));
+    assert.ok(!steps.at(-1).includes(label));
+    assert.ok(steps.at(-1).includes(label === 'basement (floor 0)' ? 'basement' : '1st floor'));
+    assert.equal(steps.join(' ').split(label).length - 1, 1);
     assert.ok(navigate(end, start).steps[0].includes(label));
   }
   assert.throws(() => parseRoom('201'), /basement \(floor 0\)/);
+  const bothFloors = navigate('0201', '1101').steps.join(' ');
+  assert.equal(bothFloors.split('basement (floor 0)').length - 1, 1);
+  assert.equal(bothFloors.split('1st (ground) floor').length - 1, 1);
+  const sameFloor = navigate('1203', '1204').steps;
+  assert.match(sameFloor[0], /1st \(ground\) floor/);
+  assert.equal(sameFloor[1], 'Walk on the 1st floor to reach Room 1204 — Main building, 1st floor.');
 });

@@ -114,5 +114,10 @@ export function navigate(startValue, endValue) {
     steps.push(...describePath(path, start, end));
     steps.push(school.knownRooms[end.number]?.arrival ?? `Walk on the ${floorName(end.floor)} to reach ${describeRoom(end)}.`);
   }
-  return {path, steps};
+  const explainedFloors = new Set();
+  return {path, steps: steps.map(step => step.replace(/basement \(floor 0\)|1st \(ground\) floor/g, label => {
+    if (explainedFloors.has(label)) return label === 'basement (floor 0)' ? 'basement' : '1st floor';
+    explainedFloors.add(label);
+    return label;
+  }))};
 }
