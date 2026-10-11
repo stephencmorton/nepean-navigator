@@ -16,10 +16,20 @@
   <template id="number-card-template">
     <article class="number-card">
       <h3></h3>
+      <div class="number-row" aria-label="Room number">
+        <strong class="number-digits floor-group"></strong>
+        <strong class="number-digits building-group"></strong>
+        <strong class="number-digits room-group"><span></span><span></span></strong>
+      </div>
+      <svg class="number-arrows" height="36" width="100%" aria-hidden="true" focusable="false">
+        <svg class="floor-group" x="0" width="100%" height="36"><line class="number-line" x2="16.667%" y1="2" y2="30"/><path class="number-tip" d="M-4 -5 0 0 4 -5"/></svg>
+        <svg class="building-group" x="0" width="100%" height="36"><line class="number-line" x2="50%" y1="2" y2="30"/><path class="number-tip" d="M-4 -5 0 0 4 -5"/></svg>
+        <svg class="room-group" x="0" width="100%" height="36"><line class="number-line" x2="83.333%" y1="2" y2="30"/><path class="number-tip" d="M-4 -5 0 0 4 -5"/></svg>
+      </svg>
       <div class="number-groups">
-        <div class="number-group floor-group"><strong class="number-digits"></strong><span class="number-arrow" aria-hidden="true">↓</span><span class="number-key">Floor</span><span class="number-value"></span></div>
-        <div class="number-group building-group"><strong class="number-digits"></strong><span class="number-arrow" aria-hidden="true">↓</span><span class="number-key">Building</span><span class="number-value"></span></div>
-        <div class="number-group room-group"><strong class="number-digits"></strong><span class="number-arrow" aria-hidden="true">↓</span><span class="number-key">Room</span><span class="number-value"></span></div>
+        <div class="number-group floor-group"><span class="number-key">Floor</span><span class="number-value"></span></div>
+        <div class="number-group building-group"><span class="number-key">Building</span><span class="number-value"></span></div>
+        <div class="number-group room-group"><span class="number-key">Room</span><span class="number-value"></span></div>
       </div>
       <p class="number-note" hidden></p>
     </article>

@@ -7,6 +7,16 @@ const result = document.querySelector('#result');
 const steps = document.querySelector('#steps');
 const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
+const changeRoute = document.querySelector('#change-route');
+function renderList(list, texts) {
+  list.replaceChildren(...texts.map(text => {
+    const item = document.createElement('li');
+    item.textContent = text;
+    return item;
+  }));
+}
+
+// Room-number explanation: cards, arrows, and collapse behavior.
 const numberExplanation = document.querySelector('#number-explanation');
 numberExplanation.addEventListener('click', event => {
   // The summary already toggles the details element through native behavior.
@@ -14,17 +24,36 @@ numberExplanation.addEventListener('click', event => {
 });
 const numberCards = document.querySelector('#number-cards');
 const numberCardTemplate = document.querySelector('#number-card-template');
+// Keep arrow origins aligned with the fixed-width digits at every card width.
+new ResizeObserver(() => {
+  for (const card of numberCards.children) {
+    const {width, left} = card.querySelector('.number-arrows').getBoundingClientRect();
+    if (!width) continue;
+    card.querySelectorAll('.number-arrows > svg').forEach((arrow, index) => {
+      const destination = width * (index * 2 + 1) / 6;
+      const digits = card.querySelectorAll('.number-row > .number-digits')[index].getBoundingClientRect();
+      const origin = digits.left + digits.width / 2 - left;
+      // Arrowheads point down by default; rotate to follow the shaft's vector.
+      const angle = Math.atan2(origin - destination, 30 - 2) * 180 / Math.PI;
+      arrow.querySelector('line').setAttribute('x1', origin);
+      arrow.querySelector('path').setAttribute('transform', `translate(${destination} 30) rotate(${angle})`);
+    });
+  }
+}).observe(numberCards);
+
 function explainRoomNumber(number, label) {
   const card = numberCardTemplate.content.firstElementChild.cloneNode(true);
   card.querySelector('h3').textContent = `${label} · ${roomLabel(number)}`;
   const groups = [
-    [number[0], floorName(Number(number[0]))],
-    [number[1], school.buildings[Number(number[1])]],
-    [number.slice(2), `Room ${number.slice(2)}`],
+    floorName(Number(number[0])),
+    school.buildings[Number(number[1])],
+    `Room ${number.slice(2)}`,
   ];
+  card.querySelector('.number-row > .floor-group').textContent = number[0];
+  card.querySelector('.number-row > .building-group').textContent = number[1];
+  card.querySelectorAll('.number-row > .room-group span').forEach((digit, index) => { digit.textContent = number[index + 2]; });
   card.querySelectorAll('.number-group').forEach((group, index) => {
-    group.querySelector('.number-digits').textContent = groups[index][0];
-    group.querySelector('.number-value').textContent = groups[index][1];
+    group.querySelector('.number-value').textContent = groups[index];
   });
   const level = school.knownRooms[number]?.level;
   if (level) {
@@ -35,15 +64,16 @@ function explainRoomNumber(number, label) {
   return card;
 }
 
-const changeRoute = document.querySelector('#change-route');
-function renderList(list, texts) {
-  list.replaceChildren(...texts.map(text => {
-    const item = document.createElement('li');
-    item.textContent = text;
-    return item;
-  }));
+function renderNumberExplanation(start, end, visible) {
+  numberCards.replaceChildren(
+    explainRoomNumber(start, 'Starting room'),
+    explainRoomNumber(end, 'Destination'),
+  );
+  numberExplanation.hidden = !visible;
+  numberExplanation.open = true;
 }
 
+// Room entry and route display.
 const knownRooms = document.querySelector('#known-rooms');
 renderList(knownRooms, Object.entries(school.knownRooms).map(([number, room]) => `${number} — ${room.name}`));
 for (const input of [form.elements.start, form.elements.end]) {
@@ -82,12 +112,7 @@ form.addEventListener('submit', (event) => {
   steps.replaceChildren();
   try {
     const route = navigate(form.elements.start.value, form.elements.end.value);
-    numberCards.replaceChildren(
-      explainRoomNumber(form.elements.start.value.trim(), 'Starting room'),
-      explainRoomNumber(form.elements.end.value.trim(), 'Destination'),
-    );
-    numberExplanation.hidden = !route.path;
-    numberExplanation.open = true;
+    renderNumberExplanation(form.elements.start.value.trim(), form.elements.end.value.trim(), Boolean(route.path));
     renderList(steps, route.steps);
     summary.textContent = `${roomLabel(form.elements.start.value.trim())} → ${roomLabel(form.elements.end.value.trim())}`;
     title.textContent = route.path ? 'Your route' : 'No route found';
