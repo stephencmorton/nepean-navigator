@@ -1,5 +1,5 @@
 import {school} from './data.js';
-import {navigate, roomLabel, constrainRoomInput} from './routing.js';
+import {navigate, roomLabel, constrainRoomInput, floorName} from './routing.js';
 
 const form = document.querySelector('#navigation');
 const error = document.querySelector('#error');
@@ -7,6 +7,34 @@ const result = document.querySelector('#result');
 const steps = document.querySelector('#steps');
 const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
+const numberExplanation = document.querySelector('#number-explanation');
+numberExplanation.addEventListener('click', event => {
+  // The summary already toggles the details element through native behavior.
+  if (!event.target.closest('summary')) numberExplanation.open = false;
+});
+const numberCards = document.querySelector('#number-cards');
+const numberCardTemplate = document.querySelector('#number-card-template');
+function explainRoomNumber(number, label) {
+  const card = numberCardTemplate.content.firstElementChild.cloneNode(true);
+  card.querySelector('h3').textContent = `${label} · ${roomLabel(number)}`;
+  const groups = [
+    [number[0], floorName(Number(number[0]))],
+    [number[1], school.buildings[Number(number[1])]],
+    [number.slice(2), `Room ${number.slice(2)}`],
+  ];
+  card.querySelectorAll('.number-group').forEach((group, index) => {
+    group.querySelector('.number-digits').textContent = groups[index][0];
+    group.querySelector('.number-value').textContent = groups[index][1];
+  });
+  const level = school.knownRooms[number]?.level;
+  if (level) {
+    const note = card.querySelector('.number-note');
+    note.textContent = `${roomLabel(number)} is on a ${level}.`;
+    note.hidden = false;
+  }
+  return card;
+}
+
 const changeRoute = document.querySelector('#change-route');
 function renderList(list, texts) {
   list.replaceChildren(...texts.map(text => {
@@ -54,6 +82,12 @@ form.addEventListener('submit', (event) => {
   steps.replaceChildren();
   try {
     const route = navigate(form.elements.start.value, form.elements.end.value);
+    numberCards.replaceChildren(
+      explainRoomNumber(form.elements.start.value.trim(), 'Starting room'),
+      explainRoomNumber(form.elements.end.value.trim(), 'Destination'),
+    );
+    numberExplanation.hidden = !route.path;
+    numberExplanation.open = true;
     renderList(steps, route.steps);
     summary.textContent = `${roomLabel(form.elements.start.value.trim())} → ${roomLabel(form.elements.end.value.trim())}`;
     title.textContent = route.path ? 'Your route' : 'No route found';

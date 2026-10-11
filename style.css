@@ -66,3 +66,25 @@ footer {margin-top: .75rem;}
 .known-rooms h2 {font-size: inherit; font-weight: 650; margin: 0 0 .35rem;}
 #known-rooms {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .75rem; list-style: none; padding: 0; margin: 0 0 .5rem;}
 #known-rooms li {padding: 0; margin: 0;}
+
+#number-explanation {margin: 0 0 1rem; border-bottom: 1px solid #eee5f5; cursor: pointer;}
+#number-explanation > summary {font-size: .88rem; color: #62516f;}
+#number-cards {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding-bottom: 1rem;}
+.number-card {min-width: 0; padding: .75rem; background: #faf8fc; border-radius: .6rem;}
+.number-card h3 {font-size: .85rem; margin: 0 0 .75rem; font-weight: 650;}
+.number-groups {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; text-align: center;}
+.number-group {--group-color: #245a99; --group-bg: #edf4ff; --delay: .1s; min-width: 0; display: flex; align-items: center; flex-direction: column; color: var(--group-color);}
+.building-group {--group-color: #79500b; --group-bg: #fff3d6; --delay: .4s;}
+.room-group {--group-color: #6f3293; --group-bg: #f4eafb; --delay: .7s;}
+.number-digits {display: block; min-width: 100%; padding: .15rem .25rem; border: 2px solid var(--group-color); border-radius: .35rem; background: var(--group-bg); font: 700 1.65rem/1.3 ui-monospace, monospace; font-variant-numeric: tabular-nums;}
+.number-arrow {font-size: 1.3rem; line-height: 1.3;}
+.number-key {font-size: .8rem; font-weight: 700;}
+.number-value {font-size: .75rem; overflow-wrap: anywhere;}
+.number-note {font-size: .75rem; color: #62516f; margin: .75rem 0 0;}
+.showing-route .number-group {animation: number-reveal .45s ease-out var(--delay) both;}
+.showing-route #steps {animation: number-reveal .4s ease-out 1s both;}
+@keyframes number-reveal {from {opacity: 0; transform: translateY(-.4rem);} to {opacity: 1; transform: translateY(0);}}
+@media (max-width: 480px) {#number-cards {grid-template-columns: 1fr;}}
+@media (prefers-reduced-motion: reduce) {
+  .showing-route .number-group, .showing-route #steps {animation: none;}
+}

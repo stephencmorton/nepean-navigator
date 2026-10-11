@@ -13,6 +13,17 @@
   <script type="module" src="./app.js"></script>
 </head>
 <body>
+  <template id="number-card-template">
+    <article class="number-card">
+      <h3></h3>
+      <div class="number-groups">
+        <div class="number-group floor-group"><strong class="number-digits"></strong><span class="number-arrow" aria-hidden="true">↓</span><span class="number-key">Floor</span><span class="number-value"></span></div>
+        <div class="number-group building-group"><strong class="number-digits"></strong><span class="number-arrow" aria-hidden="true">↓</span><span class="number-key">Building</span><span class="number-value"></span></div>
+        <div class="number-group room-group"><strong class="number-digits"></strong><span class="number-arrow" aria-hidden="true">↓</span><span class="number-key">Room</span><span class="number-value"></span></div>
+      </div>
+      <p class="number-note" hidden></p>
+    </article>
+  </template>
   <main>
     <header><h1 class="brand"><img src="./icons/helmet-192.png" width="44" height="44" alt=""> <span>NHS Wayfinder</span></h1><p>Directions from one room to the next.</p></header>
     <form id="navigation" novalidate>
@@ -28,6 +39,10 @@
     <section id="result" aria-labelledby="route-title" hidden>
       <div class="route-header"><h2 id="route-title" tabindex="-1">Your route</h2><button id="change-route" class="secondary" type="button" aria-controls="navigation">Change rooms</button></div>
       <p id="route-summary"></p>
+      <details id="number-explanation" open>
+        <summary>How to read your room numbers</summary>
+        <div id="number-cards"></div>
+      </details>
       <ol id="steps"></ol>
     </section>
     <footer>
