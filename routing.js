@@ -70,7 +70,7 @@ export function findPath(map, start, end) {
 export function describeStep(from, to) {
   const [building, floor] = from.split('-').map(Number);
   const [nextBuilding, nextFloor] = to.split('-').map(Number);
-  if (building !== nextBuilding) return `Change building to ${school.buildings[nextBuilding]} (${nextBuilding}), ${floorName(nextFloor)}.`;
+  if (building !== nextBuilding) return `Change building to ${school.buildings[nextBuilding]}, ${floorName(nextFloor)}.`;
   return `Go ${nextFloor > floor ? 'up' : 'down'} the stairs to the ${floorName(nextFloor)}.`;
 }
 function describePath(path, start, end) {
