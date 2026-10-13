@@ -1,7 +1,9 @@
+// Routing regressions for room parsing, graph reachability, and school-specific directions.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {buildGraph, graph, parseRoom, findPath, navigate, constrainRoomInput, roomLabel, floorName} from '../routing.js';
 
+// Core map coverage, route selection, and special-level handling.
 test('room parsing preserves basement-floor zeros and validates map coverage', () => {
   assert.equal(parseRoom(' 0201 ').node, '2-0');
   for (const value of ['', '201', '22055', 'abcd', '1901', '4201', '<img>']) assert.throws(() => parseRoom(value));
@@ -44,6 +46,7 @@ test('all graph routes use symmetric edges and have shortest length', () => {
   }
 });
 
+// Input sanitization and human-readable destination labels.
 test('room inputs accept only digits and preserve leading zeros', () => {
   for (const [input, expected] of [
     ['22055', '2205'], ['0201', '0201'], [' 02012 ', '0201'],
@@ -61,6 +64,7 @@ test('known numbers display names in directions', () => {
   }
 });
 
+// Stairwell choices depend on entry/exit sides and Guidance's half-level.
 test('leaving Main selects the stairwell for the destination building', () => {
   for (const destination of ['1101', '3341', '1401', '0501']) {
     const side = destination === '1101' ? 'south' : 'north';
@@ -107,6 +111,7 @@ test('ordinary floor changes in Main use the closest stairwell without choosing 
   assert.ok(!navigate('1203', '2205').steps[1].match(/north|south/));
 });
 
+// Map edge cases and consistent floor-number explanations.
 test('graph construction retains isolated mapped floors and connection nodes', () => {
   const isolated = buildGraph({connections: {'2-0': []}, staircases: {5: [1]}});
   assert.deepEqual(findPath(isolated, '5-1', '5-1'), ['5-1']);

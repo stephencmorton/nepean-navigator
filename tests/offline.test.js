@@ -1,3 +1,4 @@
+// Simulated service-worker checks for shell caching, cache isolation, and hosting paths.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, existsSync} from 'node:fs';
@@ -12,7 +13,9 @@ test('service worker caches the shell and serves it offline at root and repo sub
     const workerSource = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
     const version = workerSource.match(/const VERSION = '([^']+)'/)[1];
     const prefix = `nepean-navigator:${path}:`;
+    // Load actual app files into an in-memory cache to exercise the worker offline.
     const cache = {
+      // Reject shell entries that do not exist in the repository.
       async addAll(urls) {
         for (const url of urls) {
           const relative = url.slice(base.length);
@@ -20,14 +23,33 @@ test('service worker caches the shell and serves it offline at root and repo sub
           entries.set(url, readFileSync(new URL(`../${relative}`, import.meta.url), 'utf8'));
         }
       },
+      // Resolve a cached asset without requiring browser CacheStorage.
       async match(url) {return entries.get(url);},
     };
+    // Supply worker lifecycle and cache APIs while making network access fail.
     vm.runInNewContext(workerSource, {
       URL,
-      self: {location: {href: base + 'sw.js'}, clients: {async claim() {}}, addEventListener(name, fn) {handlers[name] = fn;}},
-      caches: {async open() {return cache;}, async keys() {return [prefix + 'v0', prefix + version, 'other-app'];}, async delete(name) {deleted.push(name);}},
+      self: {
+        location: {href: base + 'sw.js'},
+        clients: {
+          // Allow activation to claim clients without a browser session.
+          async claim() {},
+        },
+        // Capture lifecycle handlers so the test can dispatch events explicitly.
+        addEventListener(name, fn) {handlers[name] = fn;},
+      },
+      caches: {
+        // Share the in-memory shell cache across lifecycle and fetch handlers.
+        async open() {return cache;},
+        // Include stale, current, and unrelated caches to test cleanup boundaries.
+        async keys() {return [prefix + 'v0', prefix + version, 'other-app'];},
+        // Record cleanup requests for assertions without deleting real browser data.
+        async delete(name) {deleted.push(name);},
+      },
+      // Fail immediately if an offline request unexpectedly needs the network.
       fetch() {throw new Error('Offline');},
     });
+    // Finish installation and activation before requesting cached shell assets.
     let pending;
     handlers.install({waitUntil(promise) {pending = promise;}}); await pending;
     handlers.activate({waitUntil(promise) {pending = promise;}}); await pending;
@@ -37,6 +59,7 @@ test('service worker caches the shell and serves it offline at root and repo sub
       handlers.fetch({request: {url: base + name, method: 'GET', mode: name === '' || name.startsWith('?') || name === 'index.html' ? 'navigate' : 'cors'}, respondWith(promise) {response = promise;}});
       assert.ok(await response, `offline response for ${base + name}`);
     }
+    // Ensure unrelated requests bypass the worker and manifest URLs stay within scope.
     let intercepted = false;
     handlers.fetch({request: {url: 'https://example.test/unrelated/file', method: 'GET', mode: 'cors'}, respondWith() {intercepted = true;}});
     assert.equal(intercepted, false);
