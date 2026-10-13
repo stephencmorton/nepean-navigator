@@ -72,7 +72,18 @@
       </div>
     </footer>
     <!-- Supporting map information and the limits of the prototype. -->
-    <p class="room-guide"><a href="./public/nepean_infographic.png" target="_blank" rel="noopener" aria-label="Room numbering explained (opens in a new tab)">Room numbering explained <span aria-hidden="true">↗</span></a></p>
+    <p class="room-guide"><button id="open-room-guide" type="button" aria-haspopup="dialog" aria-controls="room-guide-dialog">Room numbering explained</button></p>
+    <!-- Keep the infographic inside the PWA so closing it restores the current route. -->
+    <dialog id="room-guide-dialog" aria-labelledby="room-guide-title">
+      <form method="dialog" class="room-guide-header">
+        <h2 id="room-guide-title">Room numbering explained</h2>
+        <button class="secondary" autofocus>Close</button>
+      </form>
+      <div class="room-guide-content">
+        <p>A four-digit room number gives the floor, building, then the room. For example, 2410 means floor 2, building 4, room 10.</p>
+        <img src="./public/nepean_infographic.png" width="835" height="1080" alt="School room-numbering infographic with building layout and floor diagrams for the Cafeteria, Main Building, Auditorium, and Science building.">
+      </div>
+    </dialog>
     <aside><details><summary>About these directions</summary><p>This prototype uses an unverified school map supplied by a parent. Some connections are missing. Routes may use stairs; step-free access is not mapped. Guidance (2201) is on a half-level below the second floor.</p></details></aside>
     <noscript><p>Enable JavaScript to find a route.</p></noscript>
   </main>
