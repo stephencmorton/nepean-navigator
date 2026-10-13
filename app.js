@@ -144,10 +144,35 @@ form.addEventListener('submit', (event) => {
   }
 });
 
-// Show the infographic without navigating away; native dialog closure restores trigger focus.
-const roomGuide = document.querySelector('#room-guide-dialog');
-document.querySelector('#open-room-guide').addEventListener('click', () => {
-  roomGuide.showModal();
+// Keep supplementary information in dialogs and return focus to the hamburger after closing.
+const appMenu = document.querySelector('#app-menu');
+const menuToggle = appMenu.querySelector('summary');
+for (const [trigger, dialog] of [
+  ['#open-room-guide', '#room-guide-dialog'],
+  ['#open-about', '#about-dialog'],
+]) {
+  // Close the dropdown before opening a dialog so its return target stays visible.
+  document.querySelector(trigger).addEventListener('click', () => {
+    appMenu.open = false;
+    menuToggle.focus();
+    document.querySelector(dialog).showModal();
+  });
+}
+// Dismiss the dropdown when a pointer interaction moves back into the app.
+document.addEventListener('click', event => {
+  if (!appMenu.contains(event.target)) appMenu.open = false;
+});
+// Return keyboard users to the toggle when they dismiss the dropdown with Escape.
+appMenu.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && appMenu.open) {
+    event.preventDefault();
+    appMenu.open = false;
+    menuToggle.focus();
+  }
+});
+// Avoid leaving the dropdown over the form when keyboard focus moves elsewhere.
+appMenu.addEventListener('focusout', event => {
+  if (event.relatedTarget && !appMenu.contains(event.relatedTarget)) appMenu.open = false;
 });
 
 // Register offline support after page load without blocking normal navigation.
@@ -164,13 +189,17 @@ if ('serviceWorker' in navigator) {
 // Offer a native install prompt when available, with manual instructions as fallback.
 const installControl = document.querySelector('#install-control');
 const installButton = document.querySelector('#install-app');
+const menuInstallButton = document.querySelector('#menu-install-app');
+const installButtons = [installButton, menuInstallButton];
 const installHelp = document.querySelector('#install-help');
 const standalone = window.matchMedia('(display-mode: standalone)');
 let installPrompt = null;
 let installed = false;
 // Hide installation controls when the app is already installed or running standalone.
 function refreshInstallControl() {
-  installControl.hidden = installed || standalone.matches || navigator.standalone === true;
+  const hide = installed || standalone.matches || navigator.standalone === true;
+  installControl.hidden = hide;
+  menuInstallButton.hidden = hide;
 }
 refreshInstallControl();
 standalone.addEventListener('change', refreshInstallControl);
@@ -186,12 +215,27 @@ window.addEventListener('appinstalled', () => {
   installPrompt = null;
   refreshInstallControl();
 });
-// Request installation once, or toggle platform instructions when no prompt is available.
-installButton.addEventListener('click', async () => {
+// Keep both triggers in sync and bring the footer instructions into view from the menu.
+function showInstallHelp(visible, fromMenu) {
+  installHelp.hidden = !visible;
+  for (const button of installButtons) button.setAttribute('aria-expanded', String(visible));
+  if (visible && fromMenu) {
+    installHelp.focus({preventScroll: true});
+    installHelp.scrollIntoView({block: 'start', behavior: 'instant'});
+  }
+}
+
+// Share the one-use native prompt and manual instructions between both installation buttons.
+async function requestInstall(event) {
+  const fromMenu = event.currentTarget === menuInstallButton;
+  if (fromMenu) {
+    appMenu.open = false;
+    menuToggle.focus();
+  }
   if (installPrompt) {
     const prompt = installPrompt;
     installPrompt = null;
-    installButton.disabled = true;
+    for (const button of installButtons) button.disabled = true;
     try {
       await prompt.prompt();
       const choice = await prompt.userChoice;
@@ -200,13 +244,12 @@ installButton.addEventListener('click', async () => {
         refreshInstallControl();
       }
     } catch {
-      installHelp.hidden = false;
-      installButton.setAttribute('aria-expanded', 'true');
+      showInstallHelp(true, fromMenu);
     } finally {
-      installButton.disabled = false;
+      for (const button of installButtons) button.disabled = false;
     }
   } else {
-    installHelp.hidden = !installHelp.hidden;
-    installButton.setAttribute('aria-expanded', String(!installHelp.hidden));
+    showInstallHelp(fromMenu || installHelp.hidden, fromMenu);
   }
-});
+}
+for (const button of installButtons) button.addEventListener('click', requestInstall);

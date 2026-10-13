@@ -37,7 +37,23 @@
     </article>
   </template>
   <main>
-    <header><h1 class="brand"><img src="./icons/helmet-192.png" width="44" height="44" alt=""> <span>NHS Wayfinder</span></h1><p>Directions from one room to the next.</p></header>
+    <header>
+      <div class="header-row">
+        <h1 class="brand"><img src="./icons/helmet-192.png" width="44" height="44" alt=""> <span>NHS Wayfinder</span></h1>
+        <!-- Supplementary information stays available without crowding room entry. -->
+        <details id="app-menu" class="app-menu">
+          <summary aria-label="Help and information">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </summary>
+          <nav aria-label="Help and information" class="app-menu-panel">
+            <button id="open-room-guide" type="button" aria-haspopup="dialog" aria-controls="room-guide-dialog">Room numbering explained</button>
+            <button id="menu-install-app" type="button" aria-expanded="false" aria-controls="install-help" hidden>Save app for offline use</button>
+            <button id="open-about" type="button" aria-haspopup="dialog" aria-controls="about-dialog">About</button>
+          </nav>
+        </details>
+      </div>
+      <p>Directions from one room to the next.</p>
+    </header>
     <!-- Room entry and destination reference; JavaScript supplies map-aware validation. -->
     <form id="navigation" novalidate>
       <label for="start-room">Starting room</label>
@@ -64,27 +80,34 @@
       <div id="install-control" hidden>
         <button id="install-app" class="secondary" type="button" aria-expanded="false" aria-controls="install-help" aria-describedby="install-description">Save app for offline use</button>
         <p id="install-description">Add to your Home Screen for quick access, even without internet.</p>
-        <div id="install-help" hidden>
+        <div id="install-help" tabindex="-1" hidden>
           <p><strong>iPhone / iPad:</strong> In Safari, tap <span class="instruction-action"><svg class="instruction-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 9H5v12h14V9h-3M12 15V2m-4 4 4-4 4 4"/></svg> Share</span>, then <span class="instruction-action"><svg class="instruction-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7v10M7 12h10"/></svg> Add to Home Screen</span>. Enable Open as Web App if offered, then tap Add.</p>
           <p><strong>Android:</strong> In Chrome, open the ⋮ menu, then tap Add to Home screen or Install app.</p>
           <p>Open the app online once to download it for offline use.</p>
         </div>
       </div>
     </footer>
-    <!-- Supporting map information and the limits of the prototype. -->
-    <p class="room-guide"><button id="open-room-guide" type="button" aria-haspopup="dialog" aria-controls="room-guide-dialog">Room numbering explained</button></p>
     <!-- Keep the infographic inside the PWA so closing it restores the current route. -->
-    <dialog id="room-guide-dialog" aria-labelledby="room-guide-title">
-      <form method="dialog" class="room-guide-header">
+    <dialog id="room-guide-dialog" class="info-dialog" aria-labelledby="room-guide-title">
+      <form method="dialog" class="info-dialog-header">
         <h2 id="room-guide-title">Room numbering explained</h2>
         <button class="secondary" autofocus>Close</button>
       </form>
-      <div class="room-guide-content">
+      <div class="info-dialog-content">
         <p>A four-digit room number gives the floor, building, then the room. For example, 2410 means floor 2, building 4, room 10.</p>
         <img src="./public/nepean_infographic.png" width="835" height="1080" alt="School room-numbering infographic with building layout and floor diagrams for the Cafeteria, Main Building, Auditorium, and Science building.">
       </div>
     </dialog>
-    <aside><details><summary>About these directions</summary><p>This prototype uses an unverified school map supplied by a parent. Some connections are missing. Routes may use stairs; step-free access is not mapped. Guidance (2201) is on a half-level below the second floor.</p></details></aside>
+    <!-- Use the same in-app return path for the map limitations as for the infographic. -->
+    <dialog id="about-dialog" class="info-dialog" aria-labelledby="about-title">
+      <form method="dialog" class="info-dialog-header">
+        <h2 id="about-title">About</h2>
+        <button class="secondary" autofocus>Close</button>
+      </form>
+      <div class="info-dialog-content">
+        <p>This is a parent-developed, unofficial app. Source code is available on GitHub at <a href="https://github.com/nepean-navigator">https://github.com/stephencmorton/nepean-navigator/</a>.</p>
+      </div>
+    </dialog>
     <noscript><p>Enable JavaScript to find a route.</p></noscript>
   </main>
 </body>
