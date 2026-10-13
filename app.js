@@ -144,6 +144,12 @@ form.addEventListener('submit', (event) => {
   }
 });
 
+// Show the infographic without navigating away; native dialog closure restores trigger focus.
+const roomGuide = document.querySelector('#room-guide-dialog');
+document.querySelector('#open-room-guide').addEventListener('click', () => {
+  roomGuide.showModal();
+});
+
 // Register offline support after page load without blocking normal navigation.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
