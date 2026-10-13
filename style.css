@@ -1,3 +1,6 @@
+/* App presentation: responsive room entry, route results, installation help, and number cards. */
+
+/* Shared typography, page layout, and form controls. */
 :root {font-family: system-ui, sans-serif; color: #29143d; background: #f7f3fc; line-height: 1.55; color-scheme: light;}
 * {box-sizing: border-box;}
 body {margin: 0;}
@@ -21,6 +24,7 @@ li {padding-left: .4rem; margin-bottom: 1rem;}
 aside {margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #ded1ed;}
 footer {color: #62516f;}
 
+/* Route visibility, result controls, and numbered directions. */
 [hidden] {display: none !important;}
 .route-header {display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;}
 .route-header h2 {margin: 0;}
@@ -36,6 +40,7 @@ summary {cursor: pointer; min-height: 44px; display: list-item; font-weight: 650
 .showing-route header {margin-bottom: 1rem;}
 .showing-route #result {margin-top: 0;}
 #result {scroll-margin-top: 1rem;}
+/* Compact spacing and touch targets for phone-sized screens. */
 @media (max-width: 600px) {
   main {padding: 1.25rem 1rem max(1.25rem, env(safe-area-inset-bottom));}
   header {margin-bottom: 1.25rem;}
@@ -48,6 +53,7 @@ summary {cursor: pointer; min-height: 44px; display: list-item; font-weight: 650
   #steps {font-size: 1.05rem;}
 }
 
+/* Supporting room guide and platform-specific installation instructions. */
 .room-guide {margin: 1rem 0 0;}
 .room-guide a {display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; color: #6900ba; text-underline-offset: .2em;}
 .room-guide a:hover {color: #8300e8;}
@@ -62,6 +68,7 @@ footer {margin-top: .75rem;}
 .instruction-action {display: inline-flex; align-items: center; gap: .25rem; vertical-align: middle;}
 .instruction-icon {width: 1.35em; height: 1.35em; flex: 0 0 auto;}
 
+/* Destination reference list beside the room-entry controls. */
 .known-rooms {font-size: .88rem; margin-bottom: .75rem; color: #62516f;}
 .known-rooms h2 {font-size: inherit; font-weight: 650; margin: 0 0 .35rem;}
 #known-rooms {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .75rem; list-style: none; padding: 0; margin: 0 0 .5rem;}
@@ -92,6 +99,7 @@ footer {margin-top: .75rem;}
 .showing-route #steps {animation: number-reveal .4s ease-out 1s both;}
 @keyframes number-reveal {from {opacity: 0; transform: translateY(-.4rem);} to {opacity: 1; transform: translateY(0);}}
 @media (max-width: 480px) {#number-cards {grid-template-columns: 1fr;}}
+/* Honour the user's motion preference without hiding explanation content. */
 @media (prefers-reduced-motion: reduce) {
   .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg, .showing-route #steps {animation: none;}
 }

@@ -1,11 +1,12 @@
 <!doctype html>
+<!-- App markup and reusable room-number cards; behaviour and presentation live in app.js and style.css. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#8300e8">
   <meta name="description" content="Find your way between rooms at Nepean High School, even offline.">
-  <title>Nepean HS Navigator</title>
+  <title>Nepean HS Wayfinder</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/helmet-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="./icons/helmet-192.png">
@@ -13,6 +14,7 @@
   <script type="module" src="./app.js"></script>
 </head>
 <body>
+  <!-- Clone one card per endpoint to explain its floor, building, and room digits. -->
   <template id="number-card-template">
     <article class="number-card">
       <h3></h3>
@@ -36,6 +38,7 @@
   </template>
   <main>
     <header><h1 class="brand"><img src="./icons/helmet-192.png" width="44" height="44" alt=""> <span>NHS Wayfinder</span></h1><p>Directions from one room to the next.</p></header>
+    <!-- Room entry and destination reference; JavaScript supplies map-aware validation. -->
     <form id="navigation" novalidate>
       <label for="start-room">Starting room</label>
       <input id="start-room" name="start" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocapitalize="none" spellcheck="false" placeholder="2205" aria-describedby="room-help" required>
@@ -45,6 +48,7 @@
       <section class="known-rooms" aria-labelledby="special-destinations-title"><h2 id="special-destinations-title">Special destinations</h2><ul id="known-rooms"></ul></section>
       <button type="submit">Get directions <span aria-hidden="true">→</span></button>
     </form>
+    <!-- Route results and validation feedback are populated after submission. -->
     <p id="error" role="alert" hidden></p>
     <section id="result" aria-labelledby="route-title" hidden>
       <div class="route-header"><h2 id="route-title" tabindex="-1">Your route</h2><button id="change-route" class="secondary" type="button" aria-controls="navigation">Change rooms</button></div>
@@ -55,6 +59,7 @@
       </details>
       <ol id="steps"></ol>
     </section>
+    <!-- Installation controls support both native prompts and manual platform instructions. -->
     <footer>
       <div id="install-control" hidden>
         <button id="install-app" class="secondary" type="button" aria-expanded="false" aria-controls="install-help" aria-describedby="install-description">Save app for offline use</button>
@@ -66,6 +71,7 @@
         </div>
       </div>
     </footer>
+    <!-- Supporting map information and the limits of the prototype. -->
     <p class="room-guide"><a href="./public/nepean_infographic.png" target="_blank" rel="noopener" aria-label="Room numbering explained (opens in a new tab)">Room numbering explained <span aria-hidden="true">↗</span></a></p>
     <aside><details><summary>About these directions</summary><p>This prototype uses an unverified school map supplied by a parent. Some connections are missing. Routes may use stairs; step-free access is not mapped. Guidance (2201) is on a half-level below the second floor.</p></details></aside>
     <noscript><p>Enable JavaScript to find a route.</p></noscript>

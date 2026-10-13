@@ -1,7 +1,10 @@
+// Map graph construction, room validation, and route instructions independent of the browser UI.
 import {school} from './data.js';
 
+// Expand building links and staircases into a bidirectional graph of mapped floors.
 export function buildGraph(data = school) {
   const graph = new Map();
+  // Retain both endpoints and allow travel in either direction.
   const link = (a, b) => {
     if (!graph.has(a)) graph.set(a, new Set());
     if (!graph.has(b)) graph.set(b, new Set());
@@ -25,14 +28,17 @@ export function buildGraph(data = school) {
   return graph;
 }
 
+// Room input and labels share the same map coverage used by route finding.
 export const graph = buildGraph();
 // Preserve leading zeros while accepting only up to four digits.
 export function constrainRoomInput(value) {
   return String(value).replace(/\D/g, '').slice(0, 4);
 }
+// Prefer a known destination name over the generic room-number label.
 export function roomLabel(number) {
   return school.knownRooms[number]?.name ?? `Room ${number}`;
 }
+// Validate the encoded building and floor while retaining the original room digits.
 export function parseRoom(value) {
   const number = String(value).trim();
   if (!/^\d{4}$/.test(number)) throw new Error('Please enter a four-digit room number. A leading zero is required for a room on the basement (floor 0).');
@@ -43,13 +49,16 @@ export function parseRoom(value) {
   return {number, floor, building, node};
 }
 
+// Explain basement and ground-floor numbering in labels shown to users.
 export function floorName(floor) {
   return ['basement (floor 0)', '1st (ground) floor', '2nd floor', '3rd floor'][floor] ?? `${floor}th floor`;
 }
+// Describe a room's mapped location while honouring special levels such as Guidance.
 export function describeRoom(room) {
   const level = school.knownRooms[room.number]?.level ?? floorName(room.floor);
   return `${roomLabel(room.number)} — ${school.buildings[room.building]} building, ${level}`;
 }
+// Use breadth-first search to find a route with the fewest graph edges, or return null.
 export function findPath(map, start, end) {
   if (!map.has(start) || !map.has(end)) return null;
   const queue = [start];
@@ -67,18 +76,22 @@ export function findPath(map, start, end) {
   }
   return null;
 }
+// Translate a graph edge into either a building change or a stair instruction.
 export function describeStep(from, to) {
   const [building, floor] = from.split('-').map(Number);
   const [nextBuilding, nextFloor] = to.split('-').map(Number);
   if (building !== nextBuilding) return `Change building to ${school.buildings[nextBuilding]}, ${floorName(nextFloor)}.`;
   return `Go ${nextFloor > floor ? 'up' : 'down'} the stairs to the ${floorName(nextFloor)}.`;
 }
+// Add Main-building stairwell choices and crossings to the graph's movement steps.
 function describePath(path, start, end) {
   const steps = [];
+  // Decode the building portion of a graph node for stairwell selection.
   const buildingOf = node => Number(node.split('-')[0]);
   for (let i = 0; i < path.length; i++) {
     let instruction = '';
     if (buildingOf(path[i]) === 2 && (i === 0 || buildingOf(path[i - 1]) !== 2)) {
+      // Inspect the full visit to Main to choose the side needed on departure.
       let exit = i;
       while (exit + 1 < path.length && buildingOf(path[exit + 1]) === 2) exit++;
       const entrySide = i === 0
@@ -101,6 +114,7 @@ function describePath(path, start, end) {
   }
   return steps;
 }
+// Assemble a route with room descriptions and special arrival/departure instructions.
 export function navigate(startValue, endValue) {
   const start = parseRoom(startValue);
   const end = parseRoom(endValue);
@@ -114,6 +128,7 @@ export function navigate(startValue, endValue) {
     steps.push(...describePath(path, start, end));
     steps.push(school.knownRooms[end.number]?.arrival ?? `Walk on the ${floorName(end.floor)} to reach ${describeRoom(end)}.`);
   }
+  // Explain floor-number conventions once per route, then shorten repeated mentions.
   const explainedFloors = new Set();
   return {path, steps: steps.map(step => step.replace(/basement \(floor 0\)|1st \(ground\) floor/g, label => {
     if (explainedFloors.has(label)) return label === 'basement (floor 0)' ? 'basement' : '1st floor';
