@@ -1,6 +1,6 @@
 // Browser interface: room entry, route rendering, number explanations, and app installation.
 import {school} from './data.js';
-import {navigate, roomLabel, constrainRoomInput, floorName} from './routing.js';
+import {navigate, roomLabel, constrainRoomInput, floorName, parseRoom} from './routing.js';
 
 // Shared elements used to switch between room entry, errors, and route results.
 const form = document.querySelector('#navigation');
@@ -85,8 +85,37 @@ function renderNumberExplanation(start, end, visible) {
 
 // Room entry and route display.
 const knownRooms = document.querySelector('#known-rooms');
-// Format map-defined destinations for the room-entry reference list.
-renderList(knownRooms, Object.entries(school.knownRooms).map(([number, room]) => `${number} — ${room.name}`));
+// Let destination shortcuts fill the existing field without submitting an incomplete route.
+for (const [number, room] of Object.entries(school.knownRooms)) {
+  const item = document.createElement('li');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('aria-label', `Set destination to ${room.name}, room ${number}`);
+  const name = document.createElement('span');
+  name.textContent = room.name;
+  const code = document.createElement('span');
+  code.className = 'destination-code';
+  code.textContent = number;
+  button.append(name, code);
+  // Keep room entry and keyboard submission available after choosing a shortcut.
+  button.addEventListener('click', () => {
+    form.elements.end.value = number;
+    form.elements.end.focus();
+  });
+  item.append(button);
+  knownRooms.append(item);
+}
+
+// Present room identifiers and floor context once, above the movement instructions.
+function renderRouteSummary(start, end) {
+  for (const [prefix, number] of [['from', start], ['to', end]]) {
+    const room = parseRoom(number);
+    const name = school.knownRooms[number]?.name;
+    document.querySelector(`#route-${prefix}-label`).textContent = name ? `${name} · ${number}` : `Room ${number}`;
+    const level = school.knownRooms[number]?.level ?? floorName(room.floor);
+    document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building]} · ${level}`;
+  }
+}
 for (const input of [form.elements.start, form.elements.end]) {
   // Remove invalid characters without moving the caret past the remaining digits.
   const constrain = () => {
@@ -129,15 +158,16 @@ form.addEventListener('submit', (event) => {
   try {
     const route = navigate(form.elements.start.value, form.elements.end.value);
     renderNumberExplanation(form.elements.start.value.trim(), form.elements.end.value.trim(), Boolean(route.path));
-    renderList(steps, route.steps);
-    summary.textContent = `${roomLabel(form.elements.start.value.trim())} → ${roomLabel(form.elements.end.value.trim())}`;
+    renderList(steps, route.path ? route.steps.slice(1) : route.steps);
+    renderRouteSummary(form.elements.start.value.trim(), form.elements.end.value.trim());
+    summary.hidden = !route.path;
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.
     form.hidden = Boolean(route.path);
     document.body.classList.toggle('showing-route', Boolean(route.path));
     title.focus({preventScroll: true});
-    (route.path ? summary : result).scrollIntoView({block: 'start'});
+    result.scrollIntoView({block: 'start'});
   } catch (exception) {
     error.textContent = exception.message;
     error.hidden = false;

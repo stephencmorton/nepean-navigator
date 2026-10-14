@@ -6,8 +6,8 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f7f3fc",
-  "theme_color": "#8300e8",
+  "background_color": "#f5f6f8",
+  "theme_color": "#7526b8",
   "icons": [
     {
       "src": "./icons/helmet-192.png",
