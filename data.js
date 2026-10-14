@@ -13,8 +13,8 @@ export const school = {
       name: 'Guidance',
       level: 'half-level below the 2nd floor',
       stairwellSide: 'south',
-      arrival: 'Go a half-level below the 2nd floor to reach Guidance (room 2201).',
-      departure: 'Go up a half-level via the south stairwell to reach the 2nd floor.',
+      arrival: 'Take the south stairwell down a half-level from the 2nd floor to Guidance (room 2201).',
+      departure: 'Take the south stairwell up a half-level to the 2nd floor.',
     },
     // Office 2204 is provisional; its floor is known, but the exact room is unconfirmed.
     '2204': {name: 'Office'},
