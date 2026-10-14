@@ -1,102 +1,110 @@
-/* App presentation: responsive room entry, route results, installation help, and number cards. */
+/* App presentation: neutral surfaces, school-purple actions, and readable route instructions. */
 
-/* Shared typography, page layout, and form controls. */
-:root {font-family: system-ui, sans-serif; color: #29143d; background: #f7f3fc; line-height: 1.55; color-scheme: light;}
+/* Shared colour, typography, spacing, and accessible control defaults. */
+:root {font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #242934; background: #f5f6f8; line-height: 1.5; color-scheme: light; --accent: #7526b8; --accent-dark: #5d1d94; --border: #dfe3e9; --muted: #606977; --radius: .75rem;}
 * {box-sizing: border-box;}
 body {margin: 0;}
-main {max-width: 620px; margin: 0 auto; padding: 3rem 1.25rem;}
-header {margin-bottom: 2rem;}
-.brand {display: flex; align-items: center; gap: .65rem; font-size: clamp(1.3rem, 6vw, 2rem); letter-spacing: -.03em; line-height: 1.2; margin: 0;}
-.brand img {flex: 0 0 auto; width: 44px; height: 44px;}
-.brand span {white-space: nowrap;}
-form, #result {padding: 1.5rem; background: white; border: 1px solid #ded1ed; border-radius: 1rem;}
-label {display: block; font-weight: 650; margin-bottom: .4rem;}
-input {display: block; width: 100%; padding: .8rem; font: inherit; font-size: 1.15rem; border: 1px solid #887499; border-radius: .4rem; margin-bottom: 1.2rem;}
-button {width: 100%; font: inherit; font-weight: 650; background: #8300e8; color: white; border: 0; border-radius: .4rem; padding: .9rem; cursor: pointer;}
-button:hover {background: #6900ba;}
-:focus-visible {outline: 3px solid #aa641a; outline-offset: 3px;}
-#room-help, footer {font-size: .88rem;}
-#room-help {color: #62516f;}
-#result {margin-top: 1.5rem;}
-h2 {margin-top: 0;}
-li {padding-left: .4rem; margin-bottom: 1rem;}
-#error {color: #9b211b; font-weight: 650;}
-footer {color: #62516f;}
-
-/* Route visibility, result controls, and numbered directions. */
+main {max-width: 640px; margin: 0 auto; padding: 2.5rem 1.25rem;}
+button, input {font: inherit;}
+button {width: 100%; min-height: 48px; padding: .8rem 1rem; border: 1px solid transparent; border-radius: .5rem; background: var(--accent); color: white; font-weight: 600; cursor: pointer; touch-action: manipulation;}
+button:hover {background: var(--accent-dark);}
+button:disabled {opacity: .6; cursor: wait;}
+a {color: var(--accent); text-underline-offset: .2em; overflow-wrap: anywhere;}
+:focus-visible {outline: 3px solid var(--accent); outline-offset: 3px;}
 [hidden] {display: none !important;}
-.route-header {display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;}
-.route-header h2 {margin: 0;}
-.secondary {width: auto; min-height: 44px; padding: .6rem .8rem; background: #f7f3fc; color: #6900ba; border: 1px solid #ded1ed;}
-.secondary:hover {background: #eee1fb;}
-#route-summary {font-weight: 650; color: #6900ba; margin: .75rem 0 1.25rem; scroll-margin-top: .5rem;}
-#steps {padding-left: 1.5rem; margin-bottom: 0;}
-#steps li {display: list-item; width: 100%; padding: .6rem 0 .9rem .5rem; border-bottom: 1px solid #eee5f5; margin-bottom: .5rem;}
-#steps li:last-child {border-bottom: 0;}
-#steps li::marker {color: #8300e8; font-weight: 700;}
-summary {cursor: pointer; min-height: 44px; display: list-item; font-weight: 650;}
-.showing-route header > p {display: none;}
-.showing-route header {margin-bottom: 1rem;}
-.showing-route #result {margin-top: 0;}
-#result {scroll-margin-top: 1rem;}
-/* Compact spacing and touch targets for phone-sized screens. */
-@media (max-width: 600px) {
-  main {padding: 1.25rem 1rem max(1.25rem, env(safe-area-inset-bottom));}
-  header {margin-bottom: 1.25rem;}
-  header > p:last-child {margin-bottom: 0;}
-  form, #result {padding: 1rem; border-radius: .75rem;}
-  input {margin-bottom: .9rem; min-height: 48px;}
-  button {min-height: 48px; touch-action: manipulation;}
-  #room-help {margin: .5rem 0 1rem;}
-  #steps {font-size: 1.05rem;}
-}
+summary {cursor: pointer; min-height: 44px; display: list-item;}
+h2 {margin: 0; font-size: 1.35rem; font-weight: 650; letter-spacing: -.025em;}
+p {margin: 0 0 1rem;}
 
-/* Header dropdown uses native disclosure semantics and keeps help within thumb reach. */
-.header-row {display: flex; align-items: center; justify-content: space-between; gap: .5rem;}
+/* Compact school identity and a consistent header menu. */
+header {margin-bottom: 1.75rem;}
+.header-row {display: flex; align-items: center; justify-content: space-between; gap: .75rem;}
+.brand {display: flex; align-items: center; gap: .6rem; font-size: 1.35rem; letter-spacing: -.035em; line-height: 1.2; margin: 0;}
+.brand img {flex: 0 0 auto; width: 38px; height: 38px;}
+.brand span {white-space: nowrap;}
+header > p {margin: .15rem 0 0 3rem; color: var(--muted); font-size: .8rem;}
 .app-menu {position: relative; flex: 0 0 auto;}
-.app-menu > summary {display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; border: 1px solid #ded1ed; border-radius: .5rem; color: #6900ba; background: white; list-style: none;}
+.app-menu > summary {display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: .5rem; color: var(--muted); background: white; list-style: none;}
 .app-menu > summary::-webkit-details-marker {display: none;}
-.app-menu > summary:hover, .app-menu[open] > summary {background: #eee1fb;}
-.app-menu-panel {position: absolute; top: calc(100% + .5rem); right: 0; z-index: 2; width: min(17rem, calc(100vw - 2rem)); padding: .4rem; border: 1px solid #ded1ed; border-radius: .65rem; background: white; box-shadow: 0 .5rem 1.5rem rgb(41 20 61 / .15);}
-.app-menu-panel button {min-height: 48px; padding: .75rem; background: transparent; color: #29143d; text-align: left; font-size: .9rem; font-weight: 500;}
-.app-menu-panel button:hover {background: #f7f3fc;}
-@media (max-width: 360px) {
-  .brand {gap: .4rem; font-size: 1.15rem;}
-  .brand img {width: 36px; height: 36px;}
-}
+.app-menu > summary:hover, .app-menu[open] > summary {color: var(--accent); background: #f0e9f7;}
+.app-menu-panel {position: absolute; top: calc(100% + .5rem); right: 0; z-index: 2; width: min(17rem, calc(100vw - 2rem)); padding: .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: white; box-shadow: 0 .5rem 1.5rem rgb(24 31 44 / .12);}
+.app-menu-panel button {padding: .75rem; background: transparent; color: #242934; text-align: left; font-size: .9rem; font-weight: 500;}
+.app-menu-panel button:hover {background: #f5f6f8;}
 
-/* Persistent close controls keep help dialogs usable in standalone windows. */
-.info-dialog {width: min(56rem, calc(100% - 2rem)); max-width: none; max-height: 90vh; max-height: 90dvh; padding: 0; border: 1px solid #ded1ed; border-radius: .75rem; color: inherit; background: white;}
-.info-dialog::backdrop {background: rgb(29 14 45 / .6);}
-.info-dialog .info-dialog-header {position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin: 0; padding: .75rem 1rem; border: 0; border-bottom: 1px solid #ded1ed; border-radius: 0;}
-.info-dialog h2 {font-size: 1.1rem; margin: 0;}
-.info-dialog-content {padding: 0 1rem 1rem;}
+/* Room entry uses a clear primary action and quiet, usable destination shortcuts. */
+#navigation, #result {padding: 1.75rem; background: white; border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 2px 5px rgb(24 31 44 / .025);}
+.form-intro {margin: .35rem 0 1.75rem; color: var(--muted); font-size: .9rem;}
+label {display: block; font-size: .875rem; font-weight: 600; margin-bottom: .5rem;}
+input {display: block; width: 100%; min-height: 54px; padding: .7rem .9rem; font-size: 1.25rem; font-variant-numeric: tabular-nums; border: 1px solid #b9c1cc; border-radius: .5rem; margin-bottom: 1.25rem; color: #242934; background: white;}
+input::placeholder {color: #87909d;}
+input:focus {border-color: var(--accent);}
+#room-help {margin: -.4rem 0 1.5rem; color: var(--muted); font-size: .8rem; line-height: 1.55;}
+.known-rooms {margin-bottom: 1.5rem;}
+.known-rooms h2 {margin-bottom: .6rem; font-size: .8rem; font-weight: 500; color: var(--muted); letter-spacing: 0;}
+#known-rooms {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; list-style: none; padding: 0; margin: 0;}
+#known-rooms li {min-width: 0;}
+#known-rooms button {display: flex; justify-content: space-between; align-items: center; gap: .35rem; min-height: 44px; padding: .55rem .7rem; background: #f8f9fb; border-color: var(--border); color: #343b47; font-size: .8rem; font-weight: 500;}
+#known-rooms button:hover {border-color: #b69ace; background: #f5effa; color: var(--accent-dark);}
+.destination-code {font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums;}
+#error {margin: 1rem 0; padding: .8rem 1rem; border: 1px solid #f0c9c5; border-radius: .5rem; color: #982f29; background: #fff4f3; font-size: .9rem;}
+
+/* Endpoints provide context; only movement instructions receive step numbers. */
+.route-header {display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.5rem;}
+.secondary {width: auto; min-height: 44px; padding: .55rem .8rem; background: white; color: #4f5866; border-color: var(--border); font-size: .8rem; font-weight: 500;}
+.secondary:hover {background: #f5f6f8; color: #242934;}
+#route-summary {margin: 0 0 1.5rem; padding: 1rem; background: #f7f8fa; border: 1px solid #e8ebef; border-radius: var(--radius);}
+#route-summary > div {display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: .75rem; align-items: baseline;}
+#route-summary > div + div {margin-top: .9rem; padding-top: .9rem; border-top: 1px solid var(--border);}
+#route-summary dt {color: var(--muted); font-size: .75rem;}
+#route-summary dd {margin: 0;}
+#route-summary strong {display: block; font-size: .95rem; font-weight: 600;}
+#route-summary dd > span {display: block; margin-top: .15rem; font-size: .75rem; color: var(--muted);}
+#steps {padding: 0 0 0 1.6rem; margin: 0;}
+#steps li {padding: 0 0 1rem .5rem; margin-bottom: 1rem; border-bottom: 1px solid #edf0f3; line-height: 1.65; font-size: .95rem;}
+#steps li:last-child {padding-bottom: 0; margin-bottom: 0; border: 0;}
+#steps li::marker {color: var(--accent); font-weight: 650;}
+.showing-route header {margin-bottom: 1.25rem;}
+#result {scroll-margin-top: 1rem;}
+
+/* Installation is available below the main task as well as in the hamburger menu. */
+footer {margin-top: 1.5rem; color: var(--muted); font-size: .8rem; text-align: center;}
+#install-app {background: transparent; border-color: transparent; color: var(--muted);}
+#install-app:hover {background: #eaeef3; color: #242934;}
+#install-description {margin: .2rem auto 0; max-width: 26rem; font-size: .75rem;}
+#install-help {margin-top: 1rem; padding: 1rem; background: white; border: 1px solid var(--border); border-radius: var(--radius); text-align: left;}
+#install-help p:last-child {margin-bottom: 0;}
+.instruction-action {display: inline-flex; align-items: center; gap: .25rem; vertical-align: middle;}
+.instruction-icon {width: 1.35em; height: 1.35em; flex: 0 0 auto;}
+
+/* Modal help shares the app's control sizing and always keeps its close button accessible. */
+.info-dialog {width: min(56rem, calc(100% - 2rem)); max-width: none; max-height: 90vh; max-height: 90dvh; padding: 0; border: 1px solid var(--border); border-radius: 1rem; color: inherit; background: white;}
+.info-dialog::backdrop {background: rgb(24 31 44 / .55);}
+.info-dialog .info-dialog-header {position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin: 0; padding: .9rem 1rem; border-bottom: 1px solid var(--border); background: white;}
+.info-dialog h2 {font-size: 1.1rem;}
+.info-dialog-content {padding: 1rem; font-size: .9rem;}
 .info-dialog-content img {display: block; width: 100%; height: auto;}
 #about-dialog {width: min(32rem, calc(100% - 2rem));}
 body:has(.info-dialog[open]) {overflow: hidden;}
 
-/* Platform-specific instructions remain beside the installation control. */
-#install-help {max-width: 36rem; margin-top: .75rem; padding: .25rem 1rem; background: white; border: 1px solid #ded1ed; border-radius: .75rem;}
-button:disabled {opacity: .65; cursor: wait;}
-
-footer {margin-top: .75rem;}
-
-#install-description {margin: .4rem 0 0;}
-
-.instruction-action {display: inline-flex; align-items: center; gap: .25rem; vertical-align: middle;}
-.instruction-icon {width: 1.35em; height: 1.35em; flex: 0 0 auto;}
-
-/* Destination reference list beside the room-entry controls. */
-.known-rooms {font-size: .88rem; margin-bottom: .75rem; color: #62516f;}
-.known-rooms h2 {font-size: inherit; font-weight: 650; margin: 0 0 .35rem;}
-#known-rooms {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .75rem; list-style: none; padding: 0; margin: 0 0 .5rem;}
-#known-rooms li {padding: 0; margin: 0;}
+/* Keep phone layouts compact without reducing touch targets. */
+@media (max-width: 600px) {
+  main {padding: 1.25rem 1rem max(1.5rem, env(safe-area-inset-bottom));}
+  header {margin-bottom: 1.5rem;}
+  #navigation, #result {padding: 1.25rem;}
+  .form-intro {margin-bottom: 1.5rem;}
+}
+@media (max-width: 360px) {
+  .brand {gap: .4rem; font-size: 1.2rem;}
+  .brand img {width: 34px; height: 34px;}
+  header > p {margin-left: 2.5rem;}
+  #navigation, #result {padding: 1rem;}
+}
 
 /* Room-number explanation and transition animation. */
-#number-explanation {margin: 0 0 1rem; border-bottom: 1px solid #eee5f5; cursor: pointer;}
-#number-explanation > summary {font-size: .88rem; color: #62516f;}
-#number-cards {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding-bottom: 1rem;}
-.number-card {min-width: 0; padding: .75rem; background: #faf8fc; border-radius: .6rem;}
+#number-explanation {margin: 1.5rem 0 0; padding-top: .75rem; border-top: 1px solid var(--border); cursor: pointer;}
+#number-explanation > summary {font-size: .88rem; color: var(--muted);}
+#number-cards {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding-top: .5rem;}
+.number-card {min-width: 0; padding: .75rem; background: #f7f8fa; border-radius: .6rem;}
 .number-card h3 {font-size: .85rem; margin: 0 0 .75rem; font-weight: 650;}
 .number-groups {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; text-align: center;}
 .floor-group {--group-color: #245a99; --group-bg: #edf4ff; --delay: .1s;}
@@ -112,9 +120,9 @@ footer {margin-top: .75rem;}
 .number-line, .number-tip {stroke: var(--group-color); stroke-width: 1.5; fill: none;}
 .number-key {font-size: .8rem; font-weight: 700;}
 .number-value {font-size: .75rem; overflow-wrap: anywhere;}
-.number-note {font-size: .75rem; color: #62516f; margin: .75rem 0 0;}
+.number-note {font-size: .75rem; color: var(--muted); margin: .75rem 0 0;}
 .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg {animation: number-reveal .45s ease-out var(--delay) both;}
-.showing-route #steps {animation: number-reveal .4s ease-out 1s both;}
+
 @keyframes number-reveal {from {opacity: 0; transform: translateY(-.4rem);} to {opacity: 1; transform: translateY(0);}}
 @media (max-width: 480px) {#number-cards {grid-template-columns: 1fr;}}
 /* Honour the user's motion preference without hiding explanation content. */

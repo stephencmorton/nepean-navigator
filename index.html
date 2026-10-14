@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#8300e8">
+  <meta name="theme-color" content="#7526b8">
   <meta name="description" content="Find your way between rooms at Nepean High School, even offline.">
   <title>Nepean HS Wayfinder</title>
   <link rel="manifest" href="./manifest.webmanifest">
@@ -52,28 +52,34 @@
           </nav>
         </details>
       </div>
-      <p>Directions from one room to the next.</p>
+      <p>Nepean High School</p>
     </header>
     <!-- Room entry and destination reference; JavaScript supplies map-aware validation. -->
     <form id="navigation" novalidate>
+      <h2 class="form-title">Find a route</h2>
+      <p class="form-intro">Directions from one room to the next.</p>
       <label for="start-room">Starting room</label>
       <input id="start-room" name="start" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocapitalize="none" spellcheck="false" placeholder="2205" aria-describedby="room-help" required>
       <label for="end-room">Destination room</label>
       <input id="end-room" enterkeyhint="go" name="end" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocapitalize="none" spellcheck="false" placeholder="3341" aria-describedby="room-help" required>
       <p id="room-help">Enter a room number. Include the leading zero for rooms on the basement (floor 0).</p>
-      <section class="known-rooms" aria-labelledby="special-destinations-title"><h2 id="special-destinations-title">Special destinations</h2><ul id="known-rooms"></ul></section>
+      <section class="known-rooms" aria-labelledby="special-destinations-title"><h2 id="special-destinations-title">Or choose a destination</h2><ul id="known-rooms"></ul></section>
       <button type="submit">Get directions <span aria-hidden="true">→</span></button>
     </form>
     <!-- Route results and validation feedback are populated after submission. -->
     <p id="error" role="alert" hidden></p>
     <section id="result" aria-labelledby="route-title" hidden>
       <div class="route-header"><h2 id="route-title" tabindex="-1">Your route</h2><button id="change-route" class="secondary" type="button" aria-controls="navigation">Change rooms</button></div>
-      <p id="route-summary"></p>
+      <!-- Separate the endpoints from numbered movement instructions. -->
+      <dl id="route-summary">
+        <div><dt>From</dt><dd><strong id="route-from-label"></strong><span id="route-from-location"></span></dd></div>
+        <div><dt>To</dt><dd><strong id="route-to-label"></strong><span id="route-to-location"></span></dd></div>
+      </dl>
+      <ol id="steps"></ol>
       <details id="number-explanation">
         <summary>How to read your room numbers</summary>
         <div id="number-cards"></div>
       </details>
-      <ol id="steps"></ol>
     </section>
     <!-- Installation controls support both native prompts and manual platform instructions. -->
     <footer>
