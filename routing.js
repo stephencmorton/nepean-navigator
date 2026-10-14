@@ -53,10 +53,17 @@ export function parseRoom(value) {
 export function floorName(floor) {
   return ['basement (floor 0)', '1st (ground) floor', '2nd floor', '3rd floor'][floor] ?? `${floor}th floor`;
 }
-// Describe a room's mapped location while honouring special levels such as Guidance.
+// Identify named destinations in prose without losing the room number used to find them.
+function directionRoomLabel(room) {
+  const name = school.knownRooms[room.number]?.name;
+  if (!name) return `room ${room.number}`;
+  return `${name === 'Guidance' ? name : `the ${name}`} (room ${room.number})`;
+}
+// Describe the starting location, including basement grammar and special half-levels.
 export function describeRoom(room) {
-  const level = school.knownRooms[room.number]?.level ?? floorName(room.floor);
-  return `${roomLabel(room.number)} — ${school.buildings[room.building]} building, ${level}`;
+  const specialLevel = school.knownRooms[room.number]?.level;
+  const location = specialLevel ? `a ${specialLevel}` : `${room.floor === 0 ? 'in' : 'on'} the ${floorName(room.floor)}`;
+  return `${directionRoomLabel(room)}, ${location} of the ${school.buildings[room.building]} building`;
 }
 // Use breadth-first search to find a route with the fewest graph edges, or return null.
 export function findPath(map, start, end) {
@@ -80,8 +87,8 @@ export function findPath(map, start, end) {
 export function describeStep(from, to) {
   const [building, floor] = from.split('-').map(Number);
   const [nextBuilding, nextFloor] = to.split('-').map(Number);
-  if (building !== nextBuilding) return `Change building to ${school.buildings[nextBuilding]}, ${floorName(nextFloor)}.`;
-  return `Go ${nextFloor > floor ? 'up' : 'down'} the stairs to the ${floorName(nextFloor)}.`;
+  if (building !== nextBuilding) return `Enter the ${school.buildings[nextBuilding]} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
+  return `Take the stairs ${nextFloor > floor ? 'up' : 'down'} to the ${floorName(nextFloor)}.`;
 }
 // Add Main-building stairwell choices and crossings to the graph's movement steps.
 function describePath(path, start, end) {
@@ -102,11 +109,11 @@ function describePath(path, start, end) {
         : school.knownRooms[end.number]?.stairwellSide;
       const side = exitSide ?? entrySide;
       if (side && entrySide && side !== entrySide) {
-        instruction = `Walk all the way through the Main building to the ${side} stairwell on the other side.`;
+        instruction = `Walk through the Main building to the ${side} stairwell at the other end.`;
       } else if (side && !entrySide) {
-        instruction = `Head ${side} to the stairwell at the ${side} end of the Main building.`;
+        instruction = `Head to the ${side} stairwell in the Main building.`;
       } else if (!side && exit > i) {
-        instruction = 'Go to the closest stairwell.';
+        instruction = 'Go to the nearest stairwell.';
       }
     }
     const movement = i + 1 < path.length ? describeStep(path[i], path[i + 1]) : '';
@@ -120,13 +127,14 @@ export function navigate(startValue, endValue) {
   const end = parseRoom(endValue);
   const path = findPath(graph, start.node, end.node);
   if (!path) return {path: null, steps: ['No route found. The school map may be missing a connection.']};
-  const steps = [describeRoom(start)];
+  const steps = [`Start at ${describeRoom(start)}.`];
   if (start.number === end.number) steps.push("You're already at the destination.");
   else {
     const departure = school.knownRooms[start.number]?.departure;
     if (departure) steps.push(departure);
     steps.push(...describePath(path, start, end));
-    steps.push(school.knownRooms[end.number]?.arrival ?? `Walk on the ${floorName(end.floor)} to reach ${describeRoom(end)}.`);
+    const arrival = path.length === 1 ? 'Stay on this floor and walk to' : 'Continue on this floor to';
+    steps.push(school.knownRooms[end.number]?.arrival ?? `${arrival} ${directionRoomLabel(end)}.`);
   }
   // Explain floor-number conventions once per route, then shorten repeated mentions.
   const explainedFloors = new Set();
