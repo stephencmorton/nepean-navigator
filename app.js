@@ -73,14 +73,14 @@ function explainRoomNumber(number, label) {
   return card;
 }
 
-// Reset both explanation cards and show them only when a mapped route exists.
+// Reset both explanation cards, initially collapsed, for each mapped route.
 function renderNumberExplanation(start, end, visible) {
   numberCards.replaceChildren(
     explainRoomNumber(start, 'Starting room'),
     explainRoomNumber(end, 'Destination'),
   );
   numberExplanation.hidden = !visible;
-  numberExplanation.open = true;
+  numberExplanation.open = false;
 }
 
 // Room entry and route display.
