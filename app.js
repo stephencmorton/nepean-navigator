@@ -1,5 +1,6 @@
 // Browser interface: room entry, route rendering, number explanations, and app installation.
 import {school} from './data.js';
+import {renderRouteMap} from './route-map.js';
 import {navigate, roomLabel, constrainRoomInput, floorName, parseRoom} from './routing.js';
 
 // Shared elements used to switch between room entry, errors, and route results.
@@ -161,6 +162,8 @@ form.addEventListener('submit', (event) => {
     renderList(steps, route.path ? route.steps.slice(1) : route.steps);
     renderRouteSummary(form.elements.start.value.trim(), form.elements.end.value.trim());
     summary.hidden = !route.path;
+    renderRouteMap(document.querySelector('#route-map'), route.path, form.elements.start.value.trim(), form.elements.end.value.trim());
+    document.querySelector('#route-map-panel').hidden = !route.path;
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.
