@@ -1,7 +1,9 @@
+// Routing regressions for room parsing, graph reachability, and school-specific directions.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {buildGraph, graph, parseRoom, findPath, navigate, constrainRoomInput, roomLabel, floorName} from '../routing.js';
 
+// Core map coverage, route selection, and special-level handling.
 test('room parsing preserves basement-floor zeros and validates map coverage', () => {
   assert.equal(parseRoom(' 0201 ').node, '2-0');
   for (const value of ['', '201', '22055', 'abcd', '1901', '4201', '<img>']) assert.throws(() => parseRoom(value));
@@ -13,7 +15,7 @@ test('library to Music/Auditorium and reverse route', () => {
 });
 test('same room, different room on same floor, and guidance half-level', () => {
   assert.match(navigate('2205', '2205').steps[1], /already/);
-  assert.match(navigate('2205', '2206').steps[1], /Walk.*2206/);
+  assert.match(navigate('2205', '2206').steps[1], /walk to room 2206/);
   for (const start of ['2205', '3341']) assert.match(navigate(start, '2201').steps.at(-1), /half-level/);
 });
 test('Math/Science connects to Main and missing connections return no path', () => {
@@ -44,6 +46,7 @@ test('all graph routes use symmetric edges and have shortest length', () => {
   }
 });
 
+// Input sanitization and human-readable destination labels.
 test('room inputs accept only digits and preserve leading zeros', () => {
   for (const [input, expected] of [
     ['22055', '2205'], ['0201', '0201'], [' 02012 ', '0201'],
@@ -54,17 +57,18 @@ test('room inputs accept only digits and preserve leading zeros', () => {
 
 test('known numbers display names in directions', () => {
   for (const [number, name] of [['2205', 'Library'], ['2204', 'Office'], ['2201', 'Guidance']]) {
-    assert.ok(navigate(number, '2206').steps[0].startsWith(name));
+    assert.ok(navigate(number, '2206').steps[0].includes(`${name} (room ${number})`));
     const destination = navigate('2206', number).steps.at(-1);
     assert.ok(destination.includes(name));
     assert.ok(!destination.startsWith(`Room ${number}`));
   }
 });
 
+// Stairwell choices depend on entry/exit sides and Guidance's half-level.
 test('leaving Main selects the stairwell for the destination building', () => {
   for (const destination of ['1101', '3341', '1401', '0501']) {
     const side = destination === '1101' ? 'south' : 'north';
-    assert.match(navigate('2205', destination).steps[1], new RegExp(`Head ${side}.*${side} end`));
+    assert.match(navigate('2205', destination).steps[1], new RegExp(`Head to the ${side} stairwell`));
   }
 });
 
@@ -72,19 +76,19 @@ test('passing through Main crosses the building only between opposite sides', ()
   for (const northRoom of ['3341', '1401', '0501']) {
     for (const [start, end, side] of [['1101', northRoom, 'north'], [northRoom, '1101', 'south']]) {
       const steps = navigate(start, end).steps;
-      assert.equal(steps.filter(step => step.includes('Walk all the way through')).length, 1);
-      assert.ok(steps.some(step => step.includes(`to the ${side} stairwell on the other side`)));
+      assert.equal(steps.filter(step => step.includes('Walk through')).length, 1);
+      assert.ok(steps.some(step => step.includes(`to the ${side} stairwell at the other end`)));
     }
   }
-  assert.ok(!navigate('1401', '3341').steps.some(step => step.includes('Walk all the way through')));
-  assert.ok(!navigate('1401', '0501').steps.some(step => step.includes('Walk all the way through')));
+  assert.ok(!navigate('1401', '3341').steps.some(step => step.includes('Walk through')));
+  assert.ok(!navigate('1401', '0501').steps.some(step => step.includes('Walk through')));
   assert.ok(!navigate('2205', '2206').steps.some(step => step.includes('stairwell')));
 });
 
 test('Guidance uses the south stairwell and retains half-level directions', () => {
-  assert.match(navigate('2205', '2201').steps[1], /Head south/);
-  assert.ok(navigate('3341', '2201').steps.some(step => /Walk all the way through.*south stairwell/.test(step)));
-  assert.ok(!navigate('1101', '2201').steps.some(step => /Walk all the way through/.test(step)));
+  assert.match(navigate('2205', '2201').steps[1], /Head to the south stairwell/);
+  assert.ok(navigate('3341', '2201').steps.some(step => /Walk through.*south stairwell/.test(step)));
+  assert.ok(!navigate('1101', '2201').steps.some(step => /Walk through/.test(step)));
   assert.match(navigate('3341', '2201').steps.at(-1), /half-level/);
 });
 
@@ -92,21 +96,22 @@ test('Guidance departures climb to the mapped floor before walking or crossing M
   for (const destination of ['2205', '3341', '1101']) {
     const steps = navigate('2201', destination).steps;
     assert.match(steps[0], /half-level below the 2nd floor/);
-    assert.match(steps[1], /up a half-level.*south stairwell.*2nd floor/);
-    const crossing = steps.findIndex(step => step.includes('Walk all the way through'));
+    assert.match(steps[1], /south stairwell up a half-level.*2nd floor/);
+    const crossing = steps.findIndex(step => step.includes('Walk through'));
     if (destination === '3341') assert.ok(crossing > 1);
     else assert.equal(crossing, -1);
   }
   assert.equal(navigate('2201', '2201').steps.length, 2);
 });
 
-test('ordinary floor changes in Main use the closest stairwell without choosing a side', () => {
-  assert.match(navigate('1203', '2205').steps[1], /closest stairwell.*up.*2nd floor/);
-  assert.match(navigate('2205', '1203').steps[1], /closest stairwell.*down.*1st \(ground\) floor/);
+test('ordinary floor changes in Main use the nearest stairwell without choosing a side', () => {
+  assert.match(navigate('1203', '2205').steps[1], /nearest stairwell.*up.*2nd floor/);
+  assert.match(navigate('2205', '1203').steps[1], /nearest stairwell.*down.*1st \(ground\) floor/);
   assert.equal(navigate('2205', '2206').steps.length, 2);
   assert.ok(!navigate('1203', '2205').steps[1].match(/north|south/));
 });
 
+// Map edge cases and consistent floor-number explanations.
 test('graph construction retains isolated mapped floors and connection nodes', () => {
   const isolated = buildGraph({connections: {'2-0': []}, staircases: {5: [1]}});
   assert.deepEqual(findPath(isolated, '5-1', '5-1'), ['5-1']);
@@ -136,7 +141,7 @@ test('floor labels explain basement and ground floor only on their first mention
     const steps = navigate(start, end).steps;
     assert.ok(steps[1].includes(label));
     assert.ok(!steps.at(-1).includes(label));
-    assert.ok(steps.at(-1).includes(label === 'basement (floor 0)' ? 'basement' : '1st floor'));
+    assert.match(steps.at(-1), /Continue on this floor to room/);
     assert.equal(steps.join(' ').split(label).length - 1, 1);
     assert.ok(navigate(end, start).steps[0].includes(label));
   }
@@ -146,5 +151,18 @@ test('floor labels explain basement and ground floor only on their first mention
   assert.equal(bothFloors.split('1st (ground) floor').length - 1, 1);
   const sameFloor = navigate('1203', '1204').steps;
   assert.match(sameFloor[0], /1st \(ground\) floor/);
-  assert.equal(sameFloor[1], 'Walk on the 1st floor to reach Room 1204 — Main building, 1st floor.');
+  assert.equal(sameFloor[1], 'Stay on this floor and walk to room 1204.');
+});
+
+// Editorial regressions cover location grammar, named-room identifiers, and distinct movement cues.
+test('directions use natural location and arrival wording without repeating building details', () => {
+  const basement = navigate('0201', '0501').steps;
+  assert.equal(basement[0], 'Start at room 0201, in the basement (floor 0) of the Main building.');
+  assert.ok(basement.some(step => step.includes('Enter the Gym building via the basement.')));
+  assert.equal(basement.at(-1), 'Continue on this floor to the Gym (room 0501).');
+  const library = navigate('1203', '2205').steps;
+  assert.equal(library.at(-1), 'Continue on this floor to the Library (room 2205).');
+  const guidance = navigate('2205', '2201').steps;
+  assert.equal(guidance.at(-1), 'Take the south stairwell down a half-level from the 2nd floor to Guidance (room 2201).');
+  assert.equal(navigate('2201', '2205').steps[1], 'Take the south stairwell up a half-level to the 2nd floor.');
 });

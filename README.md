@@ -1,57 +1,68 @@
 # Nepean HS Navigator
 
-A static, dependency-free HTML/CSS/JavaScript PWA. No framework, build step, accounts, or stored room history. Only app assets are cached for offline use.
+This app is aimed at Nepean HS parents, trying to navigate the confusing buildings and room numbers at parent teacher interviews and other occasions. It's a Progressive Web App (PWA) which means you can view it as a web page while you have internet, but you can save it as an app on your phone that works even if you're offline (deep within the halls of Nepean).
 
-## Local development
+Find your way between rooms at Nepean High School. The app gives you directions between buildings and floors, explains room numbers, and includes shortcuts for destinations such as the Library, Guidance, Office, and Gym.
 
-Open this folder in VS Code. With Python 3 installed, run from the repository root:
+[Open NHS Wayfinder](https://stephencmorton.github.io/nepean-navigator/)
+
+## Using the app
+
+Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. Include the leading zero for basement rooms, such as `0501`.
+
+After an online visit has finished downloading the app for offline use, you can use it without an internet connection. You can also add it to your phone's Home Screen using the instructions in the app. No account is needed, and the app does not store your room history; only app assets are cached.
+
+This is a prototype based on an unverified school map supplied by a parent. Some connections are missing, and individual room locations have not been verified. Routes may use stairs; step-free access is not mapped. Routes favour fewer building/floor connections, which may not mean the shortest walk.
+
+The route results include a 2D building overview traced from the supplied school-layout references. Highlighted buildings and dashed arrows show the building sequence; select a stage below the map to highlight its building and see its floor changes. Use the zoom controls and scroll the drawing to inspect the layout. The dotted hallway alignments follow the supplied memory-based sketch: connections to Main are near its ends. Same-end transfers stay near that end, while opposite-end transfers follow the long Main hallway. Hallway positions are approximate, and exact rooms and stairwells remain unverified. The written directions remain available below it.
+
+## Editing the project
+
+The app uses plain HTML, CSS, and JavaScript. There is no framework, build step, or dependency installation.
+
+### Run it locally
+
+With Python 3 installed, run this command from the repository folder:
 
 ```sh
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Visit http://localhost:8000/. Edit files and reload. ES modules and service workers need HTTP: do not open `index.html` as a file. Offline support requires HTTPS in production or localhost during development.
+Visit http://localhost:8000/, edit files, and reload the page. Stop the server with **Ctrl+C** in its terminal. Opening `index.html` directly will not work correctly because JavaScript modules and offline support need HTTP. Production offline support requires HTTPS.
 
-Node.js 22+ is used only for tests; there are no npm packages to install:
+### Where to make changes
+
+| File | Purpose |
+| --- | --- |
+| [data.js](data.js) | School buildings, floor connections, stairs, and special destinations |
+| [route-map.js](route-map.js) | SVG building overview and ordered building/floor stages |
+| [routing.js](routing.js) | Room parsing, route finding, and written directions |
+| [app.js](app.js) | Form behaviour, results, installation help, and service-worker registration |
+| [index.html](index.html) and [style.css](style.css) | Page content, structure, and appearance |
+| [manifest.webmanifest](manifest.webmanifest) and [icons/](icons/) | App installation details and icons |
+| [sw.js](sw.js) | Offline caching and app updates |
+| [tests/](tests/) | Automated routing and offline-cache checks |
+
+For map edits, room numbers use **floor-building-room digits**, while connection keys use **building-floor**. For example, room `2412` belongs to node `4-2`. Connections are automatically bidirectional. Check school-map corrections against the actual building before treating them as confirmed.
+
+The building outlines and schematic connector coordinates live in `mapLayout` in `data.js`. These are display geometry only; routing connections still come from `school.connections` and `school.staircases`. Keep their roles separate when editing. Original top-view and isometric reference images are in [references/maps/](references/maps/); those development references are not deployed with the app.
+
+### Check your changes
+
+With Node.js 22 or newer installed, run:
 
 ```sh
 node --test
 ```
 
-Tests cover parsing, shortest routes, graph symmetry, rooms on the basement (floor 0), guidance, same-floor destinations, missing connections, and service-worker caching at both `/` and `/nepean-navigator/` using a simulated worker environment.
+Also try your changes in a browser, including a narrow mobile view and keyboard navigation. For changes to offline behaviour, let the app install online, switch the browser to offline mode, reload, and request a route.
 
-For a local repository-subpath check, serve the parent folder:
+When changing any deployed app asset, bump `VERSION` in `sw.js` so returning users receive the update. Documentation-only changes do not need a version bump. New versions wait for existing app tabs to close; close all app tabs/windows and reopen online to update. If cached files hide local edits, unregister the service worker and clear this site's cache in browser DevTools.
 
-```sh
-cd ..
-python3 -m http.server 8000 --bind 127.0.0.1
-```
+### Publishing
 
-Visit http://localhost:8000/nepean-navigator/. In browser DevTools, inspect Application → Manifest and Service Workers. Wait for the service worker to finish installing, turn on Network → Offline, reload, and navigate from 2205 to 3341. Test invalid input, 0201 → 0501, 2205 → 2206, 2205 → 2201, and 2412 → 1203. Test a narrow mobile viewport and keyboard submission. Installation UI varies by browser; on iOS use Add to Home Screen.
+The repository includes a [GitHub Pages workflow](.github/workflows/pages.yml). Pull requests to `main` run tests; pushes to `main` run tests and deploy the app. Manual deployment also runs only on `main`. In GitHub's repository settings, Pages must use **GitHub Actions** as its source, and the `github-pages` environment must permit `main`.
 
-## School map and routing
+The app can also be served by another static host at a domain root or a repository subpath. Keep the directory structure intact and use a trailing slash in the site URL. The included deployment automation is specific to GitHub; a GitLab copy would need its own deployment configuration.
 
-`data.js` is the source of truth for school map data and special destinations. `routing.js` parses rooms, builds the bidirectional graph, and generates directions using breadth-first search. `app.js` handles the interface and worker registration.
-
-Room numbers use **floor-building-room digits**; graph nodes use **building-floor**. `connections` lists links between nodes (each link is automatically bidirectional), and `staircases` lists connected floors by building. `knownRooms` holds destination names and any special arrival/departure instructions.
-
-Routes minimize graph edges, not walking distance or travel time. Map coverage validates building/floor pairs, not the existence of individual rooms. Accessible routes are not modeled.
-
-## Offline updates
-
-`sw.js` precaches the complete app shell. All paths are relative to the worker directory, so the app works under a repository subpath or a custom-domain root. It handles only known app assets and home navigation; it leaves unrelated sites and requests alone. Cache names include the app path, and cleanup removes only this app's older caches.
-
-Bump `VERSION` in `sw.js` whenever changing any deployed asset. New workers wait for existing tabs to close so an open page does not mix shell versions. Close all app tabs/windows and reopen online to apply updates. During development, DevTools → Application → Service Workers → Unregister and clear this site's cache if stale files obscure changes. Offline use requires at least one successful online visit and worker installation.
-
-## GitHub Pages deployment
-
-No push or publication is needed for local development. After reviewing and approving the change:
-
-1. Push the feature branch and open a PR. PRs run tests without deploying.
-2. In GitHub Settings → Pages, select **GitHub Actions** as the source. Check the `github-pages` environment permits main.
-3. Merge the approved PR to main. `.github/workflows/pages.yml` runs tests, stages only app assets, uploads the Pages artifact, and deploys it. Manual dispatch also deploys only when run on main.
-4. Check the Actions deployment result and test https://stephencmorton.github.io/nepean-navigator/, including the offline browser checks above.
-
-There is no base URL build setting: HTML references, module imports, manifest start URL/scope, and service-worker scope resolve under the app directory. Use the trailing slash in the site URL. Node is only a CI test tool. The old Azure and package-based deployment workflows have been removed from this branch.
-
-References: [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages), [MDN service workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers).
+Coding agents should also read [AGENTS.md](AGENTS.md) for implementation constraints and detailed verification steps.

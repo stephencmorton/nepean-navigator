@@ -1,3 +1,4 @@
+# Test pull requests and publish the static app to GitHub Pages from main.
 name: Test and deploy Pages
 on:
   push:
@@ -11,6 +12,7 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  # Validate routing and offline caching before any deployment.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +21,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --test
+  # Publish only the explicit app assets after tests pass on main.
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test
@@ -36,7 +39,7 @@ jobs:
       - name: Stage static assets
         run: |
           mkdir _site
-          cp index.html app.js routing.js data.js style.css manifest.webmanifest sw.js _site/
+          cp index.html app.js route-map.js routing.js data.js style.css manifest.webmanifest sw.js _site/
           cp -r icons _site/
           mkdir _site/public
           cp public/nepean_infographic.png _site/public/
