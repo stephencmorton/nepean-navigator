@@ -14,6 +14,8 @@ After an online visit has finished downloading the app for offline use, you can 
 
 This is a prototype based on an unverified school map supplied by a parent. Some connections are missing, and individual room locations have not been verified. Routes may use stairs; step-free access is not mapped. Routes favour fewer building/floor connections, which may not mean the shortest walk.
 
+The route results include a 2D building overview traced from the supplied school-layout references. Highlighted buildings and dashed arrows show the building sequence; select a stage below the map to highlight its building and see its floor changes. Use the zoom controls and scroll the drawing to inspect the layout. The dotted hallway alignments follow the supplied memory-based sketch: connections to Main are near its ends. Same-end transfers stay near that end, while opposite-end transfers follow the long Main hallway. Hallway positions are approximate, and exact rooms and stairwells remain unverified. The written directions remain available below it.
+
 ## Editing the project
 
 The app uses plain HTML, CSS, and JavaScript. There is no framework, build step, or dependency installation.
@@ -33,6 +35,7 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | File | Purpose |
 | --- | --- |
 | [data.js](data.js) | School buildings, floor connections, stairs, and special destinations |
+| [route-map.js](route-map.js) | SVG building overview and ordered building/floor stages |
 | [routing.js](routing.js) | Room parsing, route finding, and written directions |
 | [app.js](app.js) | Form behaviour, results, installation help, and service-worker registration |
 | [index.html](index.html) and [style.css](style.css) | Page content, structure, and appearance |
@@ -41,6 +44,8 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | [tests/](tests/) | Automated routing and offline-cache checks |
 
 For map edits, room numbers use **floor-building-room digits**, while connection keys use **building-floor**. For example, room `2412` belongs to node `4-2`. Connections are automatically bidirectional. Check school-map corrections against the actual building before treating them as confirmed.
+
+The building outlines and schematic connector coordinates live in `mapLayout` in `data.js`. These are display geometry only; routing connections still come from `school.connections` and `school.staircases`. Keep their roles separate when editing. Original top-view and isometric reference images are in [references/maps/](references/maps/); those development references are not deployed with the app.
 
 ### Check your changes
 
