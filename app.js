@@ -145,6 +145,10 @@ for (const input of [form.elements.start, form.elements.end]) {
       input.value = constrained;
       input.setSelectionRange(position, position);
     }
+    // A complete starting room is ready; continue with the destination.
+    if (input === form.elements.start && input.value.length === 4) {
+      form.elements.end.focus();
+    }
   };
   // Defer sanitization until an input-method composition has finished.
   input.addEventListener('input', (event) => {
