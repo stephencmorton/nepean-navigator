@@ -93,21 +93,31 @@ exampleNumberCard.replaceChildren(explainRoomNumber('3214', 'Example'));
 
 // Room entry and route display.
 const knownRooms = document.querySelector('#known-rooms');
-// Let destination shortcuts fill the existing field without submitting an incomplete route.
+const roomInputs = [form.elements.start, form.elements.end];
+const focusedRoomInput = () => roomInputs.includes(document.activeElement) ? document.activeElement : null;
+// Fill the focused room, then the first empty room, otherwise the destination.
 for (const [number, room] of Object.entries(school.knownRooms)) {
   const item = document.createElement('li');
   const button = document.createElement('button');
   button.type = 'button';
-  button.setAttribute('aria-label', `Set destination to ${room.name}, room ${number}`);
+  button.setAttribute('aria-label', `Use ${room.name}, room ${number}`);
   const name = document.createElement('span');
   name.textContent = room.name;
   const code = document.createElement('span');
   code.className = 'destination-code';
   code.textContent = number;
   button.append(name, code);
-  // Keep room entry and keyboard submission available after choosing a shortcut.
-  button.addEventListener('click', () => {
-    form.elements.end.value = number;
+  // Capture focus before a mouse click or touch transfers it to the button.
+  let pointerRoom = null;
+  button.addEventListener('pointerdown', () => { pointerRoom = focusedRoomInput(); });
+  button.addEventListener('pointercancel', () => { pointerRoom = null; });
+  // Keyboard activation uses current focus and the same empty-field fallback.
+  button.addEventListener('click', event => {
+    const input = (event.detail > 0 ? pointerRoom : null) ?? focusedRoomInput()
+      ?? roomInputs.find(input => !input.value) ?? form.elements.end;
+    pointerRoom = null;
+    input.value = number;
+    // After choosing a starting room, move on to entering the destination.
     form.elements.end.focus();
   });
   item.append(button);
