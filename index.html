@@ -49,6 +49,7 @@
             <button id="open-number-guide" type="button" aria-haspopup="dialog" aria-controls="number-guide-dialog">How to read room numbers</button>
             <button id="open-room-guide" type="button" aria-haspopup="dialog" aria-controls="room-guide-dialog">Map of the school</button>
             <button id="menu-install-app" type="button" aria-expanded="false" aria-controls="install-help" hidden>Save app for offline use</button>
+            <button id="open-share" type="button" aria-haspopup="dialog" aria-controls="share-dialog">Share app</button>
             <button id="open-about" type="button" aria-haspopup="dialog" aria-controls="about-dialog">About</button>
           </nav>
         </details>
@@ -120,6 +121,19 @@
       <div class="info-dialog-content">
         <p>A four-digit room number gives the floor, building, then the room. For example, 2410 means floor 2, building 4, room 10.</p>
         <img src="./public/nepean_infographic.png" width="835" height="1080" alt="School room-numbering infographic with building layout and floor diagrams for the Cafeteria, Main Building, Auditorium, and Science building.">
+      </div>
+    </dialog>
+    <dialog id="share-dialog" class="info-dialog" aria-labelledby="share-title">
+      <form method="dialog" class="info-dialog-header">
+        <h2 id="share-title">Share app</h2>
+        <button class="secondary" autofocus>Close</button>
+      </form>
+      <div class="info-dialog-content">
+        <p>Scan this QR code with a camera to open NHS Wayfinder.</p>
+        <a href="https://stephencmorton.github.io/nepean-navigator/" aria-label="Open NHS Wayfinder"><img class="share-qr" src="./public/share-qr.svg" width="296" height="296" alt="QR code for https://stephencmorton.github.io/nepean-navigator/"></a>
+        <p><a id="share-link" href="https://stephencmorton.github.io/nepean-navigator/">https://stephencmorton.github.io/nepean-navigator/</a></p>
+        <button id="copy-share-link" type="button">Copy link</button>
+        <p id="share-status" role="status"></p>
       </div>
     </dialog>
     <!-- Use the same in-app return path for the map limitations as for the infographic. -->

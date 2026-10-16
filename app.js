@@ -195,6 +195,7 @@ const menuToggle = appMenu.querySelector('summary');
 for (const [trigger, dialog] of [
   ['#open-number-guide', '#number-guide-dialog'],
   ['#open-room-guide', '#room-guide-dialog'],
+  ['#open-share', '#share-dialog'],
   ['#open-about', '#about-dialog'],
 ]) {
   // Close the dropdown before opening a dialog so its return target stays visible.
@@ -204,6 +205,17 @@ for (const [trigger, dialog] of [
     document.querySelector(dialog).showModal();
   });
 }
+// Copy the public app address, including when opened from a local or offline install.
+const shareStatus = document.querySelector('#share-status');
+document.querySelector('#open-share').addEventListener('click', () => { shareStatus.textContent = ''; });
+document.querySelector('#copy-share-link').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(document.querySelector('#share-link').href);
+    shareStatus.textContent = 'Link copied.';
+  } catch {
+    shareStatus.textContent = 'Could not copy the link. Touch and hold or right-click the link above to copy it.';
+  }
+});
 // Dismiss the dropdown when a pointer interaction moves back into the app.
 document.addEventListener('click', event => {
   if (!appMenu.contains(event.target)) appMenu.open = false;

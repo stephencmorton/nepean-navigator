@@ -159,3 +159,9 @@ body:has(.info-dialog[open]) {overflow: hidden;}
   #route-map-panel > summary {padding: .7rem;}
   #route-map-panel > summary > span {float: none; margin-left: .4rem;}
 }
+
+/* Keep the QR code crisp and its public address readable on narrow screens. */
+#share-dialog {width: min(28rem, calc(100% - 2rem));}
+#share-dialog .share-qr {width: min(100%, 296px); margin: 0 auto; background: white;}
+#share-link {overflow-wrap: anywhere;}
+#share-status {min-height: 1.5em;}
