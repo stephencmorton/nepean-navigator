@@ -11,6 +11,33 @@ const steps = document.querySelector('#steps');
 const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
 const changeRoute = document.querySelector('#change-route');
+const routeMapPanel = document.querySelector('#route-map-panel');
+let mapCollapse;
+function cancelMapCollapse() {
+  mapCollapse?.cancel();
+  mapCollapse = null;
+}
+// Start with the overview visible, then close its accordion over two seconds.
+function revealDirections() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    routeMapPanel.open = false;
+    return;
+  }
+  const fullHeight = routeMapPanel.getBoundingClientRect().height;
+  const closedHeight = routeMapPanel.querySelector('summary').getBoundingClientRect().height
+    + routeMapPanel.offsetHeight - routeMapPanel.clientHeight;
+  mapCollapse = routeMapPanel.animate([
+    {height: `${fullHeight}px`},
+    {height: `${closedHeight}px`},
+  ], {duration: 2000, easing: 'ease-in-out', fill: 'forwards'});
+  mapCollapse.onfinish = () => {
+    routeMapPanel.open = false;
+    cancelMapCollapse();
+  };
+}
+// Let users interact with the overview or its native accordion without auto-closing it.
+routeMapPanel.addEventListener('pointerdown', cancelMapCollapse);
+routeMapPanel.addEventListener('keydown', cancelMapCollapse);
 // Render direction text and destination names as plain text rather than HTML.
 function renderList(list, texts) {
   // Build fresh items so a new route cannot retain steps from the previous one.
@@ -166,6 +193,7 @@ for (const input of [form.elements.start, form.elements.end]) {
 }
 // Start the next leg from the previous destination.
 changeRoute.addEventListener('click', () => {
+  cancelMapCollapse();
   form.elements.start.value = form.elements.end.value;
   form.elements.end.value = '';
   form.hidden = false;
@@ -176,6 +204,7 @@ changeRoute.addEventListener('click', () => {
 // Compute directions and move focus to the result, or announce a validation error.
 form.addEventListener('submit', (event) => {
   event.preventDefault();
+  cancelMapCollapse();
   error.hidden = true;
   result.hidden = true;
   steps.replaceChildren();
@@ -192,13 +221,15 @@ form.addEventListener('submit', (event) => {
     summary.hidden = !route.path;
     renderRouteMap(document.querySelector('#route-map'), route.path, start, end);
     document.querySelector('#route-map-panel').hidden = !route.path;
+    document.querySelector('#route-map-panel').open = Boolean(route.path);
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.
     form.hidden = Boolean(route.path);
     document.body.classList.toggle('showing-route', Boolean(route.path));
     title.focus({preventScroll: true});
-    result.scrollIntoView({block: 'start'});
+    result.scrollIntoView({block: 'start', behavior: 'instant'});
+    if (route.path) revealDirections();
   } catch (exception) {
     error.textContent = exception.message;
     error.hidden = false;
