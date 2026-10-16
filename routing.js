@@ -38,10 +38,11 @@ export function constrainRoomInput(value) {
 export function roomLabel(number) {
   return school.knownRooms[number]?.name ?? `Room ${number}`;
 }
-// Validate the encoded building and floor while retaining the original room digits.
+// Normalize three-digit basement entries before validating the encoded building and floor.
 export function parseRoom(value) {
-  const number = String(value).trim();
-  if (!/^\d{4}$/.test(number)) throw new Error('Please enter a four-digit room number. A leading zero is required for a room on the basement (floor 0).');
+  const input = String(value).trim();
+  if (!/^\d{3,4}$/.test(input)) throw new Error('Please enter a three- or four-digit room number. Three-digit numbers are treated as basement rooms (floor 0).');
+  const number = input.padStart(4, '0');
   const floor = Number(number[0]);
   const building = Number(number[1]);
   const node = `${building}-${floor}`;

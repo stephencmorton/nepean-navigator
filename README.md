@@ -8,7 +8,7 @@ Find your way between rooms at Nepean High School. The app gives you directions 
 
 ## Using the app
 
-Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. Include the leading zero for basement rooms, such as `0501`.
+Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `501` or `0501`, and the app will process and display it as `0501`.
 
 After an online visit has finished downloading the app for offline use, you can use it without an internet connection. You can also add it to your phone's Home Screen using the instructions in the app. No account is needed, and the app does not store your room history; only app assets are cached.
 

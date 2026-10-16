@@ -60,10 +60,10 @@
       <h2 class="form-title">Find a route</h2>
       <p class="form-intro">Directions from one room to the next.</p>
       <label for="start-room">Starting room</label>
-      <input id="start-room" name="start" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocapitalize="none" spellcheck="false" placeholder="2205" aria-describedby="room-help" required>
+      <input id="start-room" name="start" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}" autocapitalize="none" spellcheck="false" placeholder="2205" aria-describedby="room-help" required>
       <label for="end-room">Destination room</label>
-      <input id="end-room" enterkeyhint="go" name="end" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocapitalize="none" spellcheck="false" placeholder="3341" aria-describedby="room-help" required>
-      <p id="room-help">Enter a room number. Include the leading zero for rooms on the basement (floor 0).</p>
+      <input id="end-room" enterkeyhint="go" name="end" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}" autocapitalize="none" spellcheck="false" placeholder="3341" aria-describedby="room-help" required>
+      <p id="room-help">Enter three or four digit room numbers.</p>
       <section class="known-rooms" aria-labelledby="special-destinations-title"><h2 id="special-destinations-title">Or choose a destination</h2><ul id="known-rooms"></ul></section>
       <button type="submit">Get directions <span aria-hidden="true">→</span></button>
     </form>

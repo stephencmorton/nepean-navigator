@@ -12,7 +12,7 @@ These instructions apply throughout this repository. Read [README.md](README.md)
 ## Map data and routing
 
 - `data.js` is the source of truth for buildings, connections, staircases, stairwell sides, and special destinations. `routing.js` handles parsing, graph construction, and directions; `app.js` handles the interface.
-- Room numbers are four-character strings in floor-building-room order. Preserve leading zeros, including basement floor `0`. Graph nodes use `building-floor` (room `2412` maps to `4-2`).
+- Room numbers are stored and displayed as four-character strings in floor-building-room order. Accept three-digit entries by prepending `0` on submission and in `parseRoom`; preserve leading zeros for basement floor `0`. Graph nodes use `building-floor` (room `2412` maps to `4-2`).
 - `connections` links are automatically bidirectional. Each building's `staircases` list connects every pair of listed floors in one graph edge, not just adjacent floors.
 - Breadth-first search minimizes graph edges, not distance or travel time. Validation checks mapped building/floor pairs, not whether an individual room exists. Do not present routes as step-free or fully verified.
 - Preserve special arrival/departure instructions for Guidance (`2201`), which is a half-level below the second floor, and the Main building's north/south stairwell guidance.

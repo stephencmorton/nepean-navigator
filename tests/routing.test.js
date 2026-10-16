@@ -6,7 +6,7 @@ import {buildGraph, graph, parseRoom, findPath, navigate, constrainRoomInput, ro
 // Core map coverage, route selection, and special-level handling.
 test('room parsing preserves basement-floor zeros and validates map coverage', () => {
   assert.equal(parseRoom(' 0201 ').node, '2-0');
-  for (const value of ['', '201', '22055', 'abcd', '1901', '4201', '<img>']) assert.throws(() => parseRoom(value));
+  for (const value of ['', '20', '22055', 'abcd', '1901', '4201', '<img>', '101', '901']) assert.throws(() => parseRoom(value));
 });
 test('library to Music/Auditorium and reverse route', () => {
   assert.deepEqual(navigate('2205', '3341').path, ['2-2', '2-3', '3-3']);
@@ -52,7 +52,7 @@ test('room inputs accept only digits and preserve leading zeros', () => {
     ['22055', '2205'], ['0201', '0201'], [' 02012 ', '0201'],
     ['22a05', '2205'], ['library', ''], ['GUIDANCE', ''], ['0501', '0501'],
   ]) assert.equal(constrainRoomInput(input), expected);
-  for (const value of ['library', 'office', 'guidance', 'gym', '501a', '501', '502']) assert.throws(() => parseRoom(value));
+  for (const value of ['library', 'office', 'guidance', 'gym', '501a', '50']) assert.throws(() => parseRoom(value));
 });
 
 test('known numbers display names in directions', () => {
@@ -145,7 +145,7 @@ test('floor labels explain basement and ground floor only on their first mention
     assert.equal(steps.join(' ').split(label).length - 1, 1);
     assert.ok(navigate(end, start).steps[0].includes(label));
   }
-  assert.throws(() => parseRoom('201'), /basement \(floor 0\)/);
+  assert.equal(parseRoom('201').number, '0201');
   const bothFloors = navigate('0201', '1101').steps.join(' ');
   assert.equal(bothFloors.split('basement (floor 0)').length - 1, 1);
   assert.equal(bothFloors.split('1st (ground) floor').length - 1, 1);
@@ -165,4 +165,20 @@ test('directions use natural location and arrival wording without repeating buil
   const guidance = navigate('2205', '2201').steps;
   assert.equal(guidance.at(-1), 'Take the south stairwell down a half-level from the 2nd floor to Guidance (room 2201).');
   assert.equal(navigate('2201', '2205').steps[1], 'Take the south stairwell up a half-level to the 2nd floor.');
+});
+
+// Abbreviated input must behave exactly like the canonical four-digit room number.
+test('three-digit basement entries normalize before route finding and destination naming', () => {
+  for (const [short, full] of [['201', '0201'], ['501', '0501'], ['502', '0502']]) {
+    assert.deepEqual(parseRoom(short), parseRoom(full));
+    assert.deepEqual(parseRoom(` ${short} `), parseRoom(full));
+    assert.deepEqual(navigate(short, '2205'), navigate(full, '2205'));
+    assert.deepEqual(navigate('2205', short), navigate('2205', full));
+  }
+  assert.deepEqual(navigate('201', '501'), navigate('0201', '0501'));
+  assert.match(navigate('201', '501').steps.at(-1), /Gym \(room 0501\)/);
+  assert.match(navigate('501', '0501').steps[1], /already at the destination/);
+  for (const invalid of ['', '0', '20', '000', '22055', '20a', '-201', '2.01']) {
+    assert.throws(() => parseRoom(invalid));
+  }
 });

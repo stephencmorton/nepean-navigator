@@ -164,12 +164,17 @@ form.addEventListener('submit', (event) => {
   result.hidden = true;
   steps.replaceChildren();
   try {
-    const route = navigate(form.elements.start.value, form.elements.end.value);
-    renderNumberExplanation(form.elements.start.value.trim(), form.elements.end.value.trim(), Boolean(route.path));
+    // Normalize only on submission so typing a fourth digit remains natural.
+    const start = parseRoom(form.elements.start.value).number;
+    const end = parseRoom(form.elements.end.value).number;
+    const route = navigate(start, end);
+    form.elements.start.value = start;
+    form.elements.end.value = end;
+    renderNumberExplanation(start, end, Boolean(route.path));
     renderList(steps, route.path ? route.steps.slice(1) : route.steps);
-    renderRouteSummary(form.elements.start.value.trim(), form.elements.end.value.trim());
+    renderRouteSummary(start, end);
     summary.hidden = !route.path;
-    renderRouteMap(document.querySelector('#route-map'), route.path, form.elements.start.value.trim(), form.elements.end.value.trim());
+    renderRouteMap(document.querySelector('#route-map'), route.path, start, end);
     document.querySelector('#route-map-panel').hidden = !route.path;
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
