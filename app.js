@@ -29,10 +29,11 @@ numberExplanation.addEventListener('click', event => {
   if (!event.target.closest('summary')) numberExplanation.open = false;
 });
 const numberCards = document.querySelector('#number-cards');
+const exampleNumberCard = document.querySelector('#example-number-card');
 const numberCardTemplate = document.querySelector('#number-card-template');
 // Keep arrow origins aligned with the fixed-width digits at every card width.
-new ResizeObserver(() => {
-  for (const card of numberCards.children) {
+function alignNumberArrows() {
+  for (const card of document.querySelectorAll('.number-card')) {
     const {width, left} = card.querySelector('.number-arrows').getBoundingClientRect();
     if (!width) continue;
     // Aim each arrow from its digit group to the corresponding explanation column.
@@ -46,7 +47,10 @@ new ResizeObserver(() => {
       arrow.querySelector('path').setAttribute('transform', `translate(${destination} 30) rotate(${angle})`);
     });
   }
-}).observe(numberCards);
+}
+const numberCardObserver = new ResizeObserver(alignNumberArrows);
+numberCardObserver.observe(numberCards);
+numberCardObserver.observe(exampleNumberCard);
 
 // Populate a room-number card, including any destination-specific floor exception.
 function explainRoomNumber(number, label) {
@@ -83,6 +87,9 @@ function renderNumberExplanation(start, end, visible) {
   numberExplanation.hidden = !visible;
   numberExplanation.open = false;
 }
+
+// Keep an example available from the menu without changing either route input.
+exampleNumberCard.replaceChildren(explainRoomNumber('3214', 'Example'));
 
 // Room entry and route display.
 const knownRooms = document.querySelector('#known-rooms');
@@ -181,6 +188,7 @@ form.addEventListener('submit', (event) => {
 const appMenu = document.querySelector('#app-menu');
 const menuToggle = appMenu.querySelector('summary');
 for (const [trigger, dialog] of [
+  ['#open-number-guide', '#number-guide-dialog'],
   ['#open-room-guide', '#room-guide-dialog'],
   ['#open-about', '#about-dialog'],
 ]) {

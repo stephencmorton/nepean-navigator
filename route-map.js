@@ -1,4 +1,4 @@
-// Accessible SVG building overview and ordered floor changes derived from the computed route.
+// Optional, accessible SVG companion to the computed walking route.
 import {school, mapLayout} from './data.js';
 import {floorName, parseRoom} from './routing.js';
 
@@ -84,7 +84,7 @@ function svgElement(name, attributes = {}, text = '') {
   return element;
 }
 
-// Render the full route once; stage buttons only change the visual emphasis and floor readout.
+// Show the walking route as one overview, with zoom controls and no separate itinerary.
 export function renderRouteMap(container, path, startNumber, endNumber) {
   container.replaceChildren();
   const stages = buildRouteStages(path, startNumber, endNumber);
@@ -94,7 +94,7 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   const svg = svgElement('svg', {viewBox: mapLayout.viewBox, role: 'img', 'aria-labelledby': 'building-map-title building-map-description', class: 'building-map'});
   svg.append(
     svgElement('title', {id: 'building-map-title'}, 'Your route through the school buildings'),
-    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building]}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Floor changes are listed below the map.`),
+    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building]}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Floor changes are explained in the walking directions.`),
   );
   const defs = svgElement('defs');
   const marker = svgElement('marker', {id: 'building-map-arrow', viewBox: '0 0 10 10', refX: '8', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto'});
@@ -103,13 +103,11 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   svg.append(defs, svgElement('path', {d: mapLayout.background, class: 'map-background'}));
 
   const visited = new Set(stages.map(stage => stage.building));
-  const buildingGroups = new Map();
   // Draw footprints before connectors so the highlighted route remains legible above them.
   for (const [number, geometry] of Object.entries(mapLayout.buildings)) {
     const group = svgElement('g', {class: `map-building${visited.has(Number(number)) ? ' on-route' : ''}`});
     group.append(svgElement('path', {d: geometry.outline, class: 'map-footprint'}));
     svg.append(group);
-    buildingGroups.set(Number(number), group);
   }
   // Show the remembered hallway network as context beneath the highlighted route.
   for (const points of mapLayout.hallways) {
@@ -137,14 +135,6 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   const caption = document.createElement('p');
   caption.className = 'map-caption';
   caption.textContent = 'Gray dots: approximate hallways from the supplied sketch. Purple arrows: your route. Exact room and stairwell positions are unverified.';
-  const stageList = document.createElement('ol');
-  stageList.className = 'map-stages';
-  stageList.setAttribute('aria-label', 'Buildings and floors in route order');
-  const status = document.createElement('p');
-  status.className = 'map-stage-status';
-  status.setAttribute('aria-live', 'polite');
-  const buttons = [];
-
   // Let small screens inspect the full SVG detail with native scrolling and keyboard panning.
   const viewport = document.createElement('div');
   viewport.className = 'map-viewport';
@@ -172,36 +162,12 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
     button.type = 'button';
     button.textContent = text;
     button.setAttribute('aria-label', label);
-    // Reset to the overview or adjust the scale without changing the selected route stage.
+    // Reset to the overview or adjust the scale without changing the walking route.
     button.addEventListener('click', () => setZoom(delta ? zoom + delta : 1));
     tools.append(button);
     zoomButtons.push(button);
   }
 
-  // Select a route stage without implying live positioning or progress through the school.
-  function selectStage(index) {
-    const selected = stages[index];
-    for (const [building, group] of buildingGroups) group.classList.toggle('is-selected', building === selected.building);
-    buttons.forEach((button, buttonIndex) => button.setAttribute('aria-pressed', String(buttonIndex === index)));
-    status.textContent = `Stage ${index + 1} of ${stages.length}: ${school.buildings[selected.building]} · ${selected.levels.join(' → ')}`;
-  }
-  stages.forEach((stage, index) => {
-    const item = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    const heading = document.createElement('strong');
-    const endpoint = stages.length === 1 ? 'Start & finish' : index === 0 ? 'Start' : index === stages.length - 1 ? 'Finish' : 'Through';
-    heading.textContent = `${endpoint} · Building ${stage.building} · ${school.buildings[stage.building]}`;
-    const levels = document.createElement('span');
-    levels.textContent = stage.levels.join(' → ');
-    button.append(heading, levels);
-    // Keep all repeated visits selectable, including routes that return to the starting building.
-    button.addEventListener('click', () => selectStage(index));
-    item.append(button);
-    stageList.append(item);
-    buttons.push(button);
-  });
-  container.append(status, tools, viewport, caption, stageList);
+  container.append(tools, viewport, caption);
   setZoom(1);
-  selectStage(0);
 }

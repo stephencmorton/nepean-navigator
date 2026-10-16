@@ -46,6 +46,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           </summary>
           <nav aria-label="Help and information" class="app-menu-panel">
+            <button id="open-number-guide" type="button" aria-haspopup="dialog" aria-controls="number-guide-dialog">How to read room numbers</button>
             <button id="open-room-guide" type="button" aria-haspopup="dialog" aria-controls="room-guide-dialog">Map of the school</button>
             <button id="menu-install-app" type="button" aria-expanded="false" aria-controls="install-help" hidden>Save app for offline use</button>
             <button id="open-about" type="button" aria-haspopup="dialog" aria-controls="about-dialog">About</button>
@@ -75,12 +76,12 @@
         <div><dt>From</dt><dd><strong id="route-from-label"></strong><span id="route-from-location"></span></dd></div>
         <div><dt>To</dt><dd><strong id="route-to-label"></strong><span id="route-to-location"></span></dd></div>
       </dl>
-      <!-- The building overview shares the computed route with the written directions. -->
-      <details id="route-map-panel" open>
-        <summary>Building route <span>2D overview</span></summary>
+      <h3 class="directions-label">Walking directions</h3>
+      <!-- The map is an optional companion to the single walking-directions sequence. -->
+      <details id="route-map-panel">
+        <summary>Building map <span>Optional</span></summary>
         <div id="route-map"></div>
       </details>
-      <h3 class="directions-label">Walking directions</h3>
       <ol id="steps"></ol>
       <details id="number-explanation">
         <summary>How to read your room numbers</summary>
@@ -99,6 +100,17 @@
         </div>
       </div>
     </footer>
+    <!-- Explain room numbering independently of route entry, using the shared card template. -->
+    <dialog id="number-guide-dialog" class="info-dialog" aria-labelledby="number-guide-title">
+      <form method="dialog" class="info-dialog-header">
+        <h2 id="number-guide-title">How to read room numbers</h2>
+        <button class="secondary" autofocus>Close</button>
+      </form>
+      <div class="info-dialog-content">
+        <p>Read the digits from left to right: floor, building, then room.</p>
+        <div id="example-number-card"></div>
+      </div>
+    </dialog>
     <!-- Keep the infographic inside the PWA so closing it restores the current route. -->
     <dialog id="room-guide-dialog" class="info-dialog" aria-labelledby="room-guide-title">
       <form method="dialog" class="info-dialog-header">

@@ -14,7 +14,7 @@ After an online visit has finished downloading the app for offline use, you can 
 
 This is a prototype based on an unverified school map supplied by a parent. Some connections are missing, and individual room locations have not been verified. Routes may use stairs; step-free access is not mapped. Routes favour fewer building/floor connections, which may not mean the shortest walk.
 
-The route results include a 2D building overview traced from the supplied school-layout references. Highlighted buildings and dashed arrows show the building sequence; select a stage below the map to highlight its building and see its floor changes. Use the zoom controls and scroll the drawing to inspect the layout. The dotted hallway alignments follow the supplied memory-based sketch: connections to Main are near its ends. Same-end transfers stay near that end, while opposite-end transfers follow the long Main hallway. Hallway positions are approximate, and exact rooms and stairwells remain unverified. The written directions remain available below it.
+Walking directions provide one numbered sequence to follow. Open the optional **Building map** above those steps to see the same route on a 2D overview traced from the supplied school-layout references. The map starts collapsed and shows highlighted buildings and route arrows, without a second set of numbered stages. Use the zoom controls and scroll the drawing to inspect the layout. The dotted hallway alignments follow the supplied memory-based sketch: connections to Main are near its ends. Same-end transfers stay near that end, while opposite-end transfers follow the long Main hallway. Hallway positions are approximate, and exact rooms and stairwells remain unverified. The walking directions remain available below the optional map.
 
 ## Editing the project
 
@@ -35,7 +35,7 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | File | Purpose |
 | --- | --- |
 | [data.js](data.js) | School buildings, floor connections, stairs, and special destinations |
-| [route-map.js](route-map.js) | SVG building overview and ordered building/floor stages |
+| [route-map.js](route-map.js) | Optional SVG building overview for the walking route |
 | [routing.js](routing.js) | Room parsing, route finding, and written directions |
 | [app.js](app.js) | Form behaviour, results, installation help, and service-worker registration |
 | [index.html](index.html) and [style.css](style.css) | Page content, structure, and appearance |

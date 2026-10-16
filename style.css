@@ -84,6 +84,7 @@ footer {margin-top: 1.5rem; color: var(--muted); font-size: .8rem; text-align: c
 .info-dialog-content {padding: 1rem; font-size: .9rem;}
 .info-dialog-content img {display: block; width: 100%; height: auto;}
 #about-dialog {width: min(32rem, calc(100% - 2rem));}
+#number-guide-dialog {width: min(28rem, calc(100% - 2rem));}
 body:has(.info-dialog[open]) {overflow: hidden;}
 
 /* Keep phone layouts compact without reducing touch targets. */
@@ -130,7 +131,7 @@ body:has(.info-dialog[open]) {overflow: hidden;}
   .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg, .showing-route #steps {animation: none;}
 }
 
-/* A scalable building overview pairs schematic arrows with an accessible floor-by-floor itinerary. */
+/* An optional building overview supports the single walking-directions list. */
 #route-map-panel {margin: 0 0 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: clip;}
 #route-map-panel > summary {padding: .8rem 1rem; color: #343b47; font-size: .875rem; font-weight: 600;}
 #route-map-panel > summary > span {float: right; margin-top: .1rem; color: var(--muted); font-size: .7rem; font-weight: 400;}
@@ -143,7 +144,6 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 .map-background {fill: #edf0f3; stroke: #d7dde5; stroke-width: 3;}
 .map-footprint {fill: #e7ebf0; stroke: #aeb8c6; stroke-width: 4; stroke-linejoin: round;}
 .on-route .map-footprint {fill: #eee3f8; stroke: #b997d4;}
-.is-selected .map-footprint {fill: #dec5f2; stroke: var(--accent); stroke-width: 9;}
 .map-route-line {fill: none; stroke: var(--accent); stroke-width: 10; stroke-dasharray: 16 14; stroke-linejoin: round;}
 .map-hallway {fill: none; stroke: #929daa; stroke-width: 5; stroke-dasharray: 3 13; stroke-linecap: round; stroke-linejoin: round;}
 .map-direction {stroke: var(--accent); stroke-width: 10;}
@@ -154,17 +154,6 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 .map-building-number {font-size: 65px; font-weight: 700;}
 .map-building-name {font-size: 28px; font-weight: 500;}
 .map-caption {margin: .65rem 0 1rem; color: var(--muted); font-size: .72rem; line-height: 1.5;}
-.map-stages {display: grid; gap: .4rem; counter-reset: stage; padding: 0; margin: 0; list-style: none;}
-.map-stages li {counter-increment: stage;}
-.map-stages button {position: relative; min-height: 52px; padding: .7rem .7rem .7rem 2.65rem; text-align: left; background: white; color: #343b47; border-color: var(--border);}
-.map-stages button::before {content: counter(stage); position: absolute; top: .75rem; left: .6rem; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 50%; color: var(--muted); font-size: .7rem;}
-.map-stages button:hover {background: #f8f4fc;}
-.map-stages button[aria-pressed="true"] {background: #f6f0fb; border-color: var(--accent);}
-.map-stages button[aria-pressed="true"]::before {background: var(--accent); color: white; border-color: var(--accent);}
-.map-stages strong, .map-stages span {display: block;}
-.map-stages strong {font-size: .8rem; font-weight: 600;}
-.map-stages span {margin-top: .2rem; color: var(--muted); font-size: .75rem; font-weight: 400;}
-.map-stage-status {margin: 0 0 .6rem; font-size: .75rem; color: var(--muted);}
 .directions-label {margin: 0 0 1rem; font-size: .875rem; font-weight: 600;}
 @media (max-width: 360px) {
   #route-map-panel > summary {padding: .7rem;}
