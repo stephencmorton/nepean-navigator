@@ -150,12 +150,14 @@ for (const input of [form.elements.start, form.elements.end]) {
     constrain();
   });
 }
-// Return to room entry with the previous values available for editing.
+// Start the next leg from the previous destination.
 changeRoute.addEventListener('click', () => {
+  form.elements.start.value = form.elements.end.value;
+  form.elements.end.value = '';
   form.hidden = false;
   result.hidden = true;
   document.body.classList.remove('showing-route');
-  form.elements.start.focus();
+  form.elements.end.focus();
 });
 // Compute directions and move focus to the result, or announce a validation error.
 form.addEventListener('submit', (event) => {
