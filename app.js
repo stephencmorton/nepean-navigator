@@ -122,6 +122,20 @@ exampleNumberCard.replaceChildren(explainRoomNumber('3214', 'Example'));
 const knownRooms = document.querySelector('#known-rooms');
 const roomInputs = [form.elements.start, form.elements.end];
 const focusedRoomInput = () => roomInputs.includes(document.activeElement) ? document.activeElement : null;
+// Keep the room-entry controls higher on screen when the phone keyboard opens.
+const startingRoomLabel = form.querySelector('label[for="start-room"]');
+let roomScrollFrame;
+function scrollToRoomEntry() {
+  cancelAnimationFrame(roomScrollFrame);
+  roomScrollFrame = requestAnimationFrame(() => {
+    if (focusedRoomInput()) {
+      startingRoomLabel.scrollIntoView({block: 'start', behavior: 'instant'});
+    }
+  });
+}
+for (const input of roomInputs) input.addEventListener('focus', scrollToRoomEntry);
+// Mobile keyboards resize the visible viewport after focus has already fired.
+window.visualViewport?.addEventListener('resize', scrollToRoomEntry);
 // Fill the focused room, then the first empty room, otherwise the destination.
 for (const [number, room] of Object.entries(school.knownRooms)) {
   const item = document.createElement('li');
