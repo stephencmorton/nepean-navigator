@@ -6,15 +6,41 @@ Find your way between rooms at Nepean High School. The app gives you directions 
 
 [Open NHS Wayfinder](https://stephencmorton.github.io/nepean-navigator/)
 
+## Understanding room numbering
+
+You don't need actually need this app (!!) if you just understand the way room- and building-numbering works.
+
+<a href="docs/images/room-numbering.png">
+  <img src="docs/images/room-numbering.png" alt="Room numbering explained" width="300">
+</a>
+
+<a href="docs/images/building-numbering.jpg">
+  <img src="docs/images/building-numbering.jpg" alt="Building numbering explained" width="300">
+</a>
+
 ## Using the app
 
-Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. Include the leading zero for basement rooms, such as `0501`.
+Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `501` or `0501`.
 
-After an online visit has finished downloading the app for offline use, you can use it without an internet connection. You can also add it to your phone's Home Screen using the instructions in the app. No account is needed, and the app does not store your room history; only app assets are cached.
+Walking directions provide a numbered sequence to follow. The written directions are the most accurate, but the 2D building map provides context so you can understand your approximate route, if you're a more spatial/visual person.
 
-This is a prototype based on an unverified school map supplied by a parent. Some connections are missing, and individual room locations have not been verified. Routes may use stairs; step-free access is not mapped. Routes favour fewer building/floor connections, which may not mean the shortest walk.
+![Screenshot](docs/images/route-example.png)
 
-The route results include a 2D building overview traced from the supplied school-layout references. Highlighted buildings and dashed arrows show the building sequence; select a stage below the map to highlight its building and see its floor changes. Use the zoom controls and scroll the drawing to inspect the layout. The dotted hallway alignments follow the supplied memory-based sketch: connections to Main are near its ends. Same-end transfers stay near that end, while opposite-end transfers follow the long Main hallway. Hallway positions are approximate, and exact rooms and stairwells remain unverified. The written directions remain available below it.
+### Offline Use
+You do not need an internet connection to use this app (as long as you *already* have it loaded in a browser tab on your phone). But to save it even if you don't have it in a tab, see the section below.
+
+(Useful when you can't get a good internet connection inside NHS.)
+
+### Turning it into a real phone app (iPhone or Android)
+You may download the app to your phone, and it will behave just like any other app. In this mode, you can always use use it without an internet connection. Just click the "hamburger menu" in the top right, select "Save app for offlline use", and follow the instructions.
+
+### Limitations
+
+1. Map/Rooms Data
+This is a prototype based on my best memory of the buildings. Some connections are missing, and individual room locations have not been verified. Next parent-teacher night I will gather more accurate information.
+
+2. Accessibility
+Almost all routes may use stairs. Stair-free access is not mapped.
 
 ## Editing the project
 
@@ -35,7 +61,7 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | File | Purpose |
 | --- | --- |
 | [data.js](data.js) | School buildings, floor connections, stairs, and special destinations |
-| [route-map.js](route-map.js) | SVG building overview and ordered building/floor stages |
+| [route-map.js](route-map.js) | Optional SVG building overview for the walking route |
 | [routing.js](routing.js) | Room parsing, route finding, and written directions |
 | [app.js](app.js) | Form behaviour, results, installation help, and service-worker registration |
 | [index.html](index.html) and [style.css](style.css) | Page content, structure, and appearance |
