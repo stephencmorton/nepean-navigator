@@ -11,18 +11,17 @@ export function buildGraph(data = school) {
     graph.get(a).add(b);
     graph.get(b).add(a);
   };
-  for (const [node, neighbors] of Object.entries(data.connections)) {
-    if (!graph.has(node)) graph.set(node, new Set());
-    for (const neighbor of neighbors) link(node, neighbor);
-  }
-  for (const [building, floors] of Object.entries(data.staircases)) {
-    for (const floor of floors) {
-      const node = `${building}-${floor}`;
-      if (!graph.has(node)) graph.set(node, new Set());
-    }
-    // A stairwell can connect any two listed floors in one instruction.
-    for (let i = 0; i < floors.length; i++) {
-      for (let j = i + 1; j < floors.length; j++) link(`${building}-${floors[i]}`, `${building}-${floors[j]}`);
+  for (const {from, to} of data.connections) link(from, to);
+  for (const [building, staircases] of Object.entries(data.staircases)) {
+    for (const {floors} of Object.values(staircases)) {
+      for (const floor of floors) {
+        const node = `${building}-${floor}`;
+        if (!graph.has(node)) graph.set(node, new Set());
+      }
+      // A stairwell can connect any two listed floors in one instruction.
+      for (let i = 0; i < floors.length; i++) {
+        for (let j = i + 1; j < floors.length; j++) link(`${building}-${floors[i]}`, `${building}-${floors[j]}`);
+      }
     }
   }
   return graph;
@@ -85,17 +84,39 @@ export function findPath(map, start, end) {
   return null;
 }
 // Translate a graph edge into either a building change or a stair instruction.
-export function describeStep(from, to) {
+export function describeStep(from, to, side, data = school) {
   const [building, floor] = from.split('-').map(Number);
   const [nextBuilding, nextFloor] = to.split('-').map(Number);
-  if (building !== nextBuilding) return `Enter the ${school.buildings[nextBuilding]} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
-  return `Take the stairs ${nextFloor > floor ? 'up' : 'down'} to the ${floorName(nextFloor)}.`;
+  if (building !== nextBuilding) {
+    const connection = data.connections.find(link =>
+      (link.from === from && link.to === to) || (link.from === to && link.to === from));
+    const stairs = connection?.stairs;
+    let movement = 'Enter';
+    if (stairs) {
+      const direction = connection.from === from ? stairs.direction
+        : ({up: 'down', down: 'up'}[stairs.direction] ?? stairs.direction);
+      const stairLabel = stairs.extent === 'half-flight' ? 'a half-flight of stairs'
+        : stairs.extent || 'the connecting stairs';
+      movement = direction === 'up' || direction === 'down'
+        ? `Continue along the hallway and go ${direction} ${stairLabel} into`
+        : `Continue along the hallway, taking ${stairLabel} into`;
+    }
+    return `${movement} the ${data.buildings[nextBuilding]} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
+  }
+  const options = Object.entries(data.staircases[building] ?? {})
+    .filter(([, stairs]) => stairs.floors.includes(floor) && stairs.floors.includes(nextFloor));
+  const preferred = options.filter(([, stairs]) => stairs.side === side);
+  const choices = preferred.length ? preferred : options;
+  const labels = choices.map(([label, stairs]) => `${label} at the ${stairs.side} end of the hallway`);
+  const stairs = labels.length === 1 ? `staircase ${labels[0]}` : `nearest staircase (${labels.join('; or ')})`;
+  return `Take the ${stairs} ${nextFloor > floor ? 'up' : 'down'} to the ${floorName(nextFloor)}.`;
 }
 // Add Main-building stairwell choices and crossings to the graph's movement steps.
 function describePath(path, start, end) {
   const steps = [];
   // Decode the building portion of a graph node for stairwell selection.
   const buildingOf = node => Number(node.split('-')[0]);
+  let stairwellSide;
   for (let i = 0; i < path.length; i++) {
     let instruction = '';
     if (buildingOf(path[i]) === 2 && (i === 0 || buildingOf(path[i - 1]) !== 2)) {
@@ -109,15 +130,21 @@ function describePath(path, start, end) {
         ? school.mainStairwellSides[buildingOf(path[exit + 1])]
         : school.knownRooms[end.number]?.stairwellSide;
       const side = exitSide ?? entrySide;
+      stairwellSide = side;
+      // Connecting steps stay in the hallway; only a floor change or Guidance needs a stairwell.
+      const needsStairwell = exit > i || (exit === path.length - 1 &&
+        Boolean(school.knownRooms[end.number]?.stairwellSide));
       if (side && entrySide && side !== entrySide) {
-        instruction = `Walk through the Main building to the ${side} stairwell at the other end.`;
+        instruction = needsStairwell
+          ? `Walk through the Main building to the ${side} stairwell at the other end.`
+          : `Walk through the Main building to the ${side} end of the hallway.`;
       } else if (side && !entrySide) {
-        instruction = `Head to the ${side} stairwell in the Main building.`;
-      } else if (!side && exit > i) {
-        instruction = 'Go to the nearest stairwell.';
+        instruction = needsStairwell
+          ? `Head to the ${side} stairwell in the Main building.`
+          : `Head to the ${side} end of the hallway in the Main building.`;
       }
     }
-    const movement = i + 1 < path.length ? describeStep(path[i], path[i + 1]) : '';
+    const movement = i + 1 < path.length ? describeStep(path[i], path[i + 1], buildingOf(path[i]) === 2 ? stairwellSide : undefined) : '';
     if (instruction || movement) steps.push(instruction && movement ? `${instruction} ${movement}` : instruction || movement);
   }
   return steps;
