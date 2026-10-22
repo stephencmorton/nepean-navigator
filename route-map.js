@@ -94,7 +94,7 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   const svg = svgElement('svg', {viewBox: mapLayout.viewBox, role: 'img', 'aria-labelledby': 'building-map-title building-map-description', class: 'building-map'});
   svg.append(
     svgElement('title', {id: 'building-map-title'}, 'Your route through the school buildings'),
-    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building]}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Floor changes are explained in the walking directions.`),
+    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building].name}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Floor changes are explained in the walking directions.`),
   );
   const defs = svgElement('defs');
   const marker = svgElement('marker', {id: 'building-map-arrow', viewBox: '0 0 10 10', refX: '8', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto'});

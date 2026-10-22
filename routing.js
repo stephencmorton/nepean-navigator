@@ -45,7 +45,16 @@ export function parseRoom(value) {
   const floor = Number(number[0]);
   const building = Number(number[1]);
   const node = `${building}-${floor}`;
-  if (!school.buildings[building] || !graph.has(node)) throw new Error(`Room ${number} has a building or floor absent from the school map.`);
+  if (!school.buildings[building]) throw new Error(`Room ${number} has a building or floor absent from the school map.`);
+  const description = school.buildings[building];
+  const room = Number(number.slice(2));
+  if (floor < description.lowestFloor || floor > description.highestFloor) {
+    throw new Error(`Room ${number} is outside the floor range for the ${description.name} building (${description.lowestFloor}–${description.highestFloor}).`);
+  }
+  if (room < 1 || room > description.highRoom) {
+    throw new Error(`Room ${number} must have last 2 digits of room number between 01 and ${String(description.highRoom).padStart(2, '0')} in the ${description.name} building.`);
+  }
+  if (!graph.has(node)) throw new Error(`Room ${number} has a building or floor absent from the school map.`);
   return {number, floor, building, node};
 }
 
@@ -63,7 +72,7 @@ function directionRoomLabel(room) {
 export function describeRoom(room) {
   const specialLevel = school.knownRooms[room.number]?.level;
   const location = specialLevel ? `a ${specialLevel}` : `${room.floor === 0 ? 'in' : 'on'} the ${floorName(room.floor)}`;
-  return `${directionRoomLabel(room)}, ${location} of the ${school.buildings[room.building]} building`;
+  return `${directionRoomLabel(room)}, ${location} of the ${school.buildings[room.building].name} building`;
 }
 // Use breadth-first search to find a route with the fewest graph edges, or return null.
 export function findPath(map, start, end) {
@@ -101,7 +110,7 @@ export function describeStep(from, to, side, data = school) {
         ? `Continue along the hallway and go ${direction} ${stairLabel} into`
         : `Continue along the hallway, taking ${stairLabel} into`;
     }
-    return `${movement} the ${data.buildings[nextBuilding]} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
+    return `${movement} the ${data.buildings[nextBuilding].name} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
   }
   const options = Object.entries(data.staircases[building] ?? {})
     .filter(([, stairs]) => stairs.floors.includes(floor) && stairs.floors.includes(nextFloor));

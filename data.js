@@ -1,7 +1,13 @@
 // School map and destination exceptions from the original prototype; connections are unverified.
 export const school = {
   // Building identities and travel links; graph nodes use building-floor order.
-  buildings: {1: 'Cafeteria', 2: 'Main', 3: 'Music/Auditorium', 4: 'Math/Science', 5: 'Gym'},
+  buildings: {
+    1: {name: 'Cafeteria', highRoom: 12, lowestFloor: 1, highestFloor: 3},
+    2: {name: 'Main', highRoom: 12, lowestFloor: 0, highestFloor: 4},
+    3: {name: 'Music/Auditorium', highRoom: 7, lowestFloor: 0, highestFloor: 3},
+    4: {name: 'Math/Science', highRoom: 12, lowestFloor: 0, highestFloor: 2},
+    5: {name: 'Gym', highRoom: 12, lowestFloor: 1, highestFloor: 1},
+  },
   //staircases: {1: [1, 2], 2: [0, 1, 2, 3], 3: [1, 3], 4: [0, 1, 2]},
   staircases: {1: {//'X': {'side': 'north', 'floors': [1,2,3]},// not used in routing
                    'E': {'side': 'south', 'floors': [1,2,3] }},
@@ -15,10 +21,11 @@ export const school = {
   connections: [
     {from: '2-1', to: '1-1', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-3', to: '1-3', stairs: {direction: 'down', extent: 'half-flight'}},
-    {from: '2-0', to: '5-0'},
+    {from: '2-1', to: '5-1'},
+    //{from: '2-1', to: '3-1', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-2', to: '3-1', stairs: {direction: 'down', extent: 'half-flight'}},
-    //{from: '2-2', to: '3-2', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-3', to: '3-2', stairs: {direction: 'down', extent: 'half-flight'}},
+    {from: '2-4', to: '3-3', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '3-1', to: '4-1', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '3-2', to: '4-2', stairs: {direction: 'up', extent: '3 steps'}},
   ],
@@ -36,8 +43,11 @@ export const school = {
     },
     '2205': {name: 'Library'},
     '2202': {name: 'Office'},
-    '0509': {name: 'Gym'},
-    '1305': {name: 'Music'},
+    '1509': {name: 'Gym'},
+    '1305': {
+      name: 'Music',
+      arrival: "In building 3, on the 1st floor, look for room 1305. Then keep going down the stairs and follow the path that can't possibly be right to the Music room.",
+    },
   },
 };
 

@@ -20,7 +20,7 @@ You don't need actually need this app (!!) if you just understand the way room- 
 
 ## Using the app
 
-Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `501` or `0501`.
+Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `201` or `0201`.
 
 Walking directions provide a numbered sequence to follow. The written directions are the most accurate, but the 2D building map provides context so you can understand your approximate route, if you're a more spatial/visual person.
 
@@ -68,6 +68,8 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | [manifest.webmanifest](manifest.webmanifest) and [icons/](icons/) | App installation details and icons |
 | [sw.js](sw.js) | Offline caching and app updates |
 | [tests/](tests/) | Automated routing and offline-cache checks |
+
+Building descriptions contain `name`, `highRoom` (the highest two-digit room suffix), `lowestFloor`, and `highestFloor`, with inclusive limits. Input validation accepts suffixes from 01 through `highRoom` and floors within that building’s range, and still requires a mapped building/floor node. These bounds do not verify individual rooms or create missing connections. Building 5 uses floor 1, including the Gym preset `1509`. Tests check that connections, staircases, and named destinations stay within building descriptions.
 
 For map edits, room numbers use **floor-building-room digits**, while connection keys use **building-floor**. For example, room `2412` belongs to node `4-2`. Each building’s `staircases` object is keyed by staircase label, for example `J: {side: "west", floors: [0, 1, 2]}`. Each staircase connects every pair of its listed floors. Directions show the label and hallway end; when no side is known, they list the staircases serving both floors. Connections are a list of `{from, to}` objects using graph node IDs, with optional `stairs: {direction: "down", extent: "half-flight"}` metadata. Direction describes travel from `from` to `to`; reverse travel swaps `up` and `down`. Use `direction: "unknown"` when stairs are known but their direction is not. Omit `stairs` when no stair instruction is mapped; this does not establish step-free access. Connections are automatically bidirectional and remain one graph edge regardless of connecting stairs. Check school-map corrections against the actual building before treating them as confirmed.
 

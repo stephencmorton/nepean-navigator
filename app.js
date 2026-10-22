@@ -85,7 +85,7 @@ function explainRoomNumber(number, label) {
   card.querySelector('h3').textContent = `${label} · ${roomLabel(number)}`;
   const groups = [
     floorName(Number(number[0])),
-    school.buildings[Number(number[1])],
+    school.buildings[Number(number[1])].name,
     `Room ${number.slice(2)}`,
   ];
   card.querySelector('.number-row > .floor-group').textContent = number[0];
@@ -172,7 +172,7 @@ function renderRouteSummary(start, end) {
     const name = school.knownRooms[number]?.name;
     document.querySelector(`#route-${prefix}-label`).textContent = name ? `${name} · ${number}` : `Room ${number}`;
     const level = school.knownRooms[number]?.level ?? floorName(room.floor);
-    document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building]} · ${level}`;
+    document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building].name} · ${level}`;
   }
 }
 for (const input of [form.elements.start, form.elements.end]) {

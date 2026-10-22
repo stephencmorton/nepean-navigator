@@ -6,10 +6,10 @@ import {mapLayout} from '../data.js';
 import {buildRouteStages, buildingLink, routeMapLinks, linkArrow} from '../route-map.js';
 
 test('building stages retain entry and exit floors in route order', () => {
-  const route = navigate('3341', '2412');
-  const stages = buildRouteStages(route.path, '3341', '2412');
+  const route = {path: ['3-2', '2-3', '2-2', '3-1', '4-1', '4-2']};
+  const stages = buildRouteStages(route.path, '2301', '2412');
   assert.deepEqual(stages.map(({building, floors}) => ({building, floors})), [
-    {building: 3, floors: [3]}, {building: 2, floors: [3, 2]}, {building: 3, floors: [2]}, {building: 4, floors: [2]},
+    {building: 3, floors: [2]}, {building: 2, floors: [3, 2]}, {building: 3, floors: [1]}, {building: 4, floors: [1, 2]},
   ]);
 });
 
@@ -24,15 +24,15 @@ test('same-floor, same-room, and basement routes retain their actual levels', ()
   assert.deepEqual(buildRouteStages(navigate('2205', '2206').path, '2205', '2206'), [
     {building: 2, floors: [2], levels: ['2nd floor']},
   ]);
-  const stages = buildRouteStages(navigate('0201', '0501').path, '0201', '0501');
-  assert.deepEqual(stages.map(stage => stage.levels), [['basement (floor 0)'], ['basement (floor 0)']]);
+  const stages = buildRouteStages(navigate('0201', '1501').path, '0201', '1501');
+  assert.deepEqual(stages.map(stage => stage.levels), [['basement (floor 0)'], ['1st (ground) floor']]);
   assert.deepEqual(buildRouteStages(navigate('2205', '2205').path, '2205', '2205')[0].floors, [2]);
-  assert.deepEqual(buildRouteStages(null, '2205', '3341'), []);
+  assert.deepEqual(buildRouteStages(null, '2205', '2301'), []);
 });
 
 test('Guidance half-levels bracket the mapped floors in the correct direction', () => {
-  assert.deepEqual(buildRouteStages(navigate('2201', '3341').path, '2201', '3341')[0].levels,
-    ['half-level below the 2nd floor', '2nd floor', '3rd floor']);
+  assert.deepEqual(buildRouteStages(navigate('2201', '2301').path, '2201', '2301')[0].levels,
+    ['half-level below the 2nd floor', '2nd floor']);
   assert.deepEqual(buildRouteStages(navigate('2205', '2201').path, '2205', '2201')[0].levels,
     ['2nd floor', 'half-level below the 2nd floor']);
   assert.deepEqual(buildRouteStages(navigate('2201', '2201').path, '2201', '2201')[0].levels,
@@ -45,7 +45,7 @@ test('graphical stages preserve every graph node for every mapped source and des
     if (!path) continue;
     const [startBuilding, startFloor] = start.split('-');
     const [endBuilding, endFloor] = end.split('-');
-    const stages = buildRouteStages(path, `${startFloor}${startBuilding}99`, `${endFloor}${endBuilding}99`);
+    const stages = buildRouteStages(path, `${startFloor}${startBuilding}01`, `${endFloor}${endBuilding}01`);
     assert.deepEqual(stages.flatMap(stage => stage.floors.map(floor => `${stage.building}-${floor}`)), path);
     for (const stage of stages) assert.ok(mapLayout.buildings[stage.building]);
     // Some mapped connections have no supplied schematic geometry.
@@ -86,7 +86,7 @@ test('Main routes to Music, Science, and Gym use the end junction rather than a 
 
 test('same-end transfers in Main join at the end without a detour to its centre', () => {
   const original = JSON.stringify(mapLayout.links);
-  for (const [start, end] of [['3341', '0501'], ['0501', '3341']]) {
+  for (const [start, end] of [['2301', '1501'], ['1501', '2301']]) {
     const stages = buildRouteStages(navigate(start, end).path, start, end);
     const links = routeMapLinks(stages);
     assert.deepEqual(links[0].at(-1), mapLayout.mainHallway.right);
@@ -97,7 +97,7 @@ test('same-end transfers in Main join at the end without a detour to its centre'
 });
 
 test('opposite-end transfers retain the full Main hallway and same-end returns still enter Main', () => {
-  const stages = buildRouteStages(navigate('1101', '3341').path, '1101', '3341');
+  const stages = buildRouteStages(navigate('1101', '2301').path, '1101', '2301');
   const links = routeMapLinks(stages);
   assert.deepEqual(links[0].at(-2), mapLayout.mainHallway.left);
   assert.deepEqual(links[0].at(-1), mapLayout.mainHallway.center);
