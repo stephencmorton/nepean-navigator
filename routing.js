@@ -126,13 +126,32 @@ export function describeStep(from, to, side, data = school) {
     }
     return `${movement} the ${data.buildings[nextBuilding].name} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
   }
-  const options = Object.entries(data.staircases[building] ?? {})
-    .filter(([, stairs]) => stairs.floors.includes(floor) && stairs.floors.includes(nextFloor));
-  const preferred = options.filter(([, stairs]) => stairs.side === side);
-  const choices = preferred.length ? preferred : options;
+  const choices = staircaseChoices(building, floor, nextFloor, side, data);
   const labels = choices.map(([label, stairs]) => `${label} at the ${stairs.side} end of the hallway`);
   const stairs = labels.length === 1 ? `staircase ${labels[0]}` : `nearest staircase (${labels.join('; or ')})`;
   return `Take the ${stairs} ${nextFloor > floor ? 'up' : 'down'} to the ${floorName(nextFloor)}.`;
+}
+// Share staircase choices between directions and the graphical map.
+export function staircaseChoices(building, floor, nextFloor, side, data = school) {
+  const options = Object.entries(data.staircases[building] ?? {})
+    .filter(([, stairs]) => stairs.floors.includes(floor) && stairs.floors.includes(nextFloor));
+  const preferred = options.filter(([, stairs]) => stairs.side === side);
+  return preferred.length ? preferred : options;
+}
+// Inspect a whole visit to Main, including its entry and departure sides.
+export function mainStairwellVisit(path, index, start, end, data = school) {
+  const buildingOf = node => Number(node.split('-')[0]);
+  let entry = index;
+  while (entry > 0 && buildingOf(path[entry - 1]) === 2) entry--;
+  let exit = index;
+  while (exit + 1 < path.length && buildingOf(path[exit + 1]) === 2) exit++;
+  const entrySide = entry === 0
+    ? start.stairwellSide ?? data.knownRooms[start.number]?.stairwellSide
+    : data.mainStairwellSides[buildingOf(path[entry - 1])];
+  const exitSide = exit + 1 < path.length
+    ? data.mainStairwellSides[buildingOf(path[exit + 1])]
+    : data.knownRooms[end.number]?.stairwellSide;
+  return {entrySide, side: exitSide ?? entrySide, exit};
 }
 // Add Main-building stairwell choices and crossings to the graph's movement steps.
 function describePath(path, start, end) {
@@ -143,16 +162,7 @@ function describePath(path, start, end) {
   for (let i = 0; i < path.length; i++) {
     let instruction = '';
     if (buildingOf(path[i]) === 2 && (i === 0 || buildingOf(path[i - 1]) !== 2)) {
-      // Inspect the full visit to Main to choose the side needed on departure.
-      let exit = i;
-      while (exit + 1 < path.length && buildingOf(path[exit + 1]) === 2) exit++;
-      const entrySide = i === 0
-        ? start.stairwellSide ?? school.knownRooms[start.number]?.stairwellSide
-        : school.mainStairwellSides[buildingOf(path[i - 1])];
-      const exitSide = exit + 1 < path.length
-        ? school.mainStairwellSides[buildingOf(path[exit + 1])]
-        : school.knownRooms[end.number]?.stairwellSide;
-      const side = exitSide ?? entrySide;
+      const {entrySide, side, exit} = mainStairwellVisit(path, i, start, end);
       stairwellSide = side;
       // Connecting steps stay in the hallway; only a floor change or Guidance needs a stairwell.
       const needsStairwell = exit > i || (exit === path.length - 1 &&

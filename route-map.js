@@ -1,6 +1,6 @@
 // Optional, accessible SVG companion to the computed walking route.
 import {school, mapLayout} from './data.js';
-import {floorName, parseRoom, parseStart} from './routing.js';
+import {floorName, parseRoom, parseStart, staircaseChoices, mainStairwellVisit} from './routing.js';
 
 // Group consecutive floors in one building while retaining later returns to that building.
 export function buildRouteStages(path, startNumber, endNumber) {
@@ -76,6 +76,61 @@ export function linkArrow(points) {
   return {x1: (x + nextX) / 2 - dx, y1: (y + nextY) / 2 - dy, x2: (x + nextX) / 2 + dx, y2: (y + nextY) / 2 + dy};
 }
 
+// Vertical cues describe route movements, not surveyed staircase coordinates.
+export function buildStairCues(path, startValue, endValue, data = school) {
+  if (!path?.length) return [];
+  const cues = [];
+  const add = (building, direction, label, description, staircase, side) => {
+    cues.push({building, direction, label, description, staircase, side});
+  };
+  const start = String(startValue).trim().padStart(4, '0');
+  const end = String(endValue).trim().padStart(4, '0');
+  const special = (number, kind) => {
+    const room = data.knownRooms[number];
+    const stairs = room?.[`${kind}Stairs`];
+    if (stairs?.kind === 'stairwell') {
+      const building = Number(number[1]);
+      const choices = Object.entries(data.staircases[building] ?? {})
+        .filter(([, staircase]) => staircase.kind !== 'hallway' && staircase.side === room.stairwellSide);
+      for (const [label, staircase] of choices) add(building, stairs.direction, stairs.label, room[kind], label, staircase.side);
+    }
+  };
+  if (start !== end) special(start, 'departure');
+  for (let i = 1; i < path.length; i++) {
+    const from = path[i - 1];
+    const to = path[i];
+    const [building, floor] = from.split('-').map(Number);
+    const [nextBuilding, nextFloor] = to.split('-').map(Number);
+    if (building === nextBuilding && floor !== nextFloor) {
+      const entrance = data.entrances?.[String(startValue).trim().toUpperCase()];
+      const startContext = {number: start, stairwellSide: entrance
+        ? data.staircases[entrance.building]?.[entrance.staircase]?.side : undefined};
+      const side = building === 2
+        ? mainStairwellVisit(path, i - 1, startContext, {number: end}, data).side : undefined;
+      const choices = staircaseChoices(building, floor, nextFloor, side, data)
+        .filter(([, stairs]) => stairs.kind !== 'hallway');
+      const direction = nextFloor > floor ? 'up' : 'down';
+      for (const [label, stairs] of choices) add(building, direction, `${floor} → ${nextFloor}`,
+        `${data.buildings[building].name}: staircase ${label} at the ${stairs.side} end, ${direction} from the ${floorName(floor)} to the ${floorName(nextFloor)}.`, label, stairs.side);
+    }
+  }
+  if (start !== end) special(end, 'arrival');
+  return cues;
+}
+
+// Presentation anchors can be adjusted without changing routing or staircase sides.
+export function stairCuePosition(cue, layout = mapLayout) {
+  return layout.buildings[cue.building]?.stairwellEnds?.[cue.side] ?? null;
+}
+
+// Two horizontal stair silhouettes; southward travel is read right-to-left.
+export function stairIconPath(direction, travelSide) {
+  const risesLeftToRight = (direction === 'up') !== (travelSide === 'south');
+  return risesLeftToRight
+    ? 'M-40 32H-20V16H0V0H20V-16H40V-32'
+    : 'M-40 -32H-20V-16H0V0H20V16H40V32';
+}
+
 // Create SVG elements with explicit namespaces and plain-text labels.
 function svgElement(name, attributes = {}, text = '') {
   const element = document.createElementNS('http://www.w3.org/2000/svg', name);
@@ -91,10 +146,11 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   container.hidden = !stages.length;
   if (!stages.length) return;
 
+  const stairCues = buildStairCues(path, startNumber, endNumber);
   const svg = svgElement('svg', {viewBox: mapLayout.viewBox, role: 'img', 'aria-labelledby': 'building-map-title building-map-description', class: 'building-map'});
   svg.append(
     svgElement('title', {id: 'building-map-title'}, 'Your route through the school buildings'),
-    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building].name}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Floor changes are explained in the walking directions.`),
+    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building].name}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Stair symbols show vertical travel; southward travel reads right-to-left. ${stairCues.map(cue => cue.description).join(' ')}`),
   );
   const defs = svgElement('defs');
   const marker = svgElement('marker', {id: 'building-map-arrow', viewBox: '0 0 10 10', refX: '8', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto'});
@@ -132,9 +188,28 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
     svg.append(label);
   }
 
-  const caption = document.createElement('p');
-  caption.className = 'map-caption';
-  caption.textContent = 'Gray dots: approximate hallways from the supplied sketch. Purple arrows: your route. Exact room and stairwell positions are unverified.';
+  // Overlay plain stair silhouettes on the route at the appropriate hallway end.
+  const symbolCounts = new Map();
+  const shownSymbols = new Set();
+  for (const cue of stairCues) {
+    const anchor = stairCuePosition(cue);
+    if (!anchor || !['up', 'down'].includes(cue.direction)) continue;
+    const key = `${cue.building}-${cue.side}`;
+    const identity = `${key}-${cue.direction}`;
+    if (shownSymbols.has(identity)) continue;
+    shownSymbols.add(identity);
+    const index = symbolCounts.get(key) ?? 0;
+    symbolCounts.set(key, index + 1);
+    // Repeated movements sit along the hallway rather than on top of each other.
+    const offset = index * 100;
+    const x = anchor[0] + (cue.side === 'south' ? offset : cue.side === 'north' ? -offset : 0);
+    const y = anchor[1] + (cue.side === 'west' ? offset : cue.side === 'east' ? -offset : 0);
+    const symbol = svgElement('g', {class: 'map-stairs', transform: `translate(${x} ${y})`});
+    symbol.append(svgElement('title', {}, cue.description));
+    symbol.append(svgElement('path', {d: stairIconPath(cue.direction, cue.side), class: 'map-stair-icon'}));
+    svg.append(symbol);
+  }
+
   // Let small screens inspect the full SVG detail with native scrolling and keyboard panning.
   const viewport = document.createElement('div');
   viewport.className = 'map-viewport';
@@ -168,6 +243,6 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
     zoomButtons.push(button);
   }
 
-  container.append(tools, viewport, caption);
+  container.append(tools, viewport);
   setZoom(1);
 }

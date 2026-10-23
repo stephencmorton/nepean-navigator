@@ -174,3 +174,7 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 #entrance-buttons button[aria-pressed="true"] {background: var(--accent); border-color: var(--accent); color: white;}
 #use-start-room {margin-top: .5rem;}
 #start-room:disabled {opacity: 1; background: #f5effa; color: var(--accent-dark);}
+
+/* Plain horizontal stair silhouettes overlay the route, with no badge or label. */
+.map-stairs {pointer-events: none;}
+.map-stair-icon {fill: none; stroke: var(--accent); stroke-width: 10; stroke-linejoin: round; stroke-linecap: round;}
