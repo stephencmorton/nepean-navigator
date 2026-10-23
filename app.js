@@ -1,7 +1,7 @@
 // Browser interface: room entry, route rendering, number explanations, and app installation.
 import {school} from './data.js';
 import {renderRouteMap} from './route-map.js';
-import {navigate, roomLabel, constrainRoomInput, floorName, parseRoom} from './routing.js';
+import {navigate, roomLabel, constrainRoomInput, floorName, parseRoom, parseStart} from './routing.js';
 
 // Shared elements used to switch between room entry, errors, and route results.
 const form = document.querySelector('#navigation');
@@ -105,12 +105,12 @@ function explainRoomNumber(number, label) {
   return card;
 }
 
-// Reset both explanation cards, initially collapsed, for each mapped route.
+// Explain actual room numbers only; entrances have no room-number card.
 function renderNumberExplanation(start, end, visible) {
-  numberCards.replaceChildren(
-    explainRoomNumber(start, 'Starting room'),
-    explainRoomNumber(end, 'Destination'),
-  );
+  const cards = [];
+  if (!parseStart(start).entrance) cards.push(explainRoomNumber(start, 'Starting room'));
+  cards.push(explainRoomNumber(end, 'Destination'));
+  numberCards.replaceChildren(...cards);
   numberExplanation.hidden = !visible;
   numberExplanation.open = false;
 }
@@ -120,10 +120,42 @@ exampleNumberCard.replaceChildren(explainRoomNumber('3214', 'Example'));
 
 // Room entry and route display.
 const knownRooms = document.querySelector('#known-rooms');
+const startingRoomLabel = form.querySelector('label[for="start-room"]');
+let selectedEntrance = null;
+const entranceButtons = document.querySelector('#entrance-buttons');
+const useStartRoom = document.querySelector('#use-start-room');
+function selectEntrance(entrance) {
+  selectedEntrance = entrance;
+  form.elements.start.disabled = Boolean(entrance);
+  form.elements.start.required = !entrance;
+  form.elements.start.value = entrance ? `Entrance ${entrance}` : '';
+  startingRoomLabel.textContent = entrance ? 'Starting point' : 'Starting room';
+  useStartRoom.hidden = !entrance;
+  for (const button of entranceButtons.children) {
+    button.setAttribute('aria-pressed', String(button.dataset.entrance === entrance));
+  }
+  error.hidden = true;
+}
+for (const entrance of Object.keys(school.entrances)) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = entrance;
+  button.dataset.entrance = entrance;
+  button.setAttribute('aria-label', `Start at Entrance ${entrance}`);
+  button.setAttribute('aria-pressed', 'false');
+  button.addEventListener('click', () => {
+    selectEntrance(entrance);
+    form.elements.end.focus();
+  });
+  entranceButtons.append(button);
+}
+useStartRoom.addEventListener('click', () => {
+  selectEntrance(null);
+  form.elements.start.focus();
+});
 const roomInputs = [form.elements.start, form.elements.end];
 const focusedRoomInput = () => roomInputs.includes(document.activeElement) ? document.activeElement : null;
 // Keep the room-entry controls higher on screen when the phone keyboard opens.
-const startingRoomLabel = form.querySelector('label[for="start-room"]');
 let roomScrollFrame;
 function scrollToRoomEntry() {
   cancelAnimationFrame(roomScrollFrame);
@@ -155,7 +187,7 @@ for (const [number, room] of Object.entries(school.knownRooms)) {
   // Keyboard activation uses current focus and the same empty-field fallback.
   button.addEventListener('click', event => {
     const input = (event.detail > 0 ? pointerRoom : null) ?? focusedRoomInput()
-      ?? roomInputs.find(input => !input.value) ?? form.elements.end;
+      ?? roomInputs.find(input => !input.disabled && !input.value) ?? form.elements.end;
     pointerRoom = null;
     input.value = number;
     // After choosing a starting room, move on to entering the destination.
@@ -168,9 +200,9 @@ for (const [number, room] of Object.entries(school.knownRooms)) {
 // Present room identifiers and floor context once, above the movement instructions.
 function renderRouteSummary(start, end) {
   for (const [prefix, number] of [['from', start], ['to', end]]) {
-    const room = parseRoom(number);
+    const room = prefix === 'from' ? parseStart(number) : parseRoom(number);
     const name = school.knownRooms[number]?.name;
-    document.querySelector(`#route-${prefix}-label`).textContent = name ? `${name} · ${number}` : `Room ${number}`;
+    document.querySelector(`#route-${prefix}-label`).textContent = room.entrance ? `Entrance ${room.entrance}` : name ? `${name} · ${number}` : `Room ${number}`;
     const level = school.knownRooms[number]?.level ?? floorName(room.floor);
     document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building].name} · ${level}`;
   }
@@ -208,6 +240,7 @@ for (const input of [form.elements.start, form.elements.end]) {
 // Start the next leg from the previous destination.
 changeRoute.addEventListener('click', () => {
   cancelMapCollapse();
+  selectEntrance(null);
   form.elements.start.value = form.elements.end.value;
   form.elements.end.value = '';
   form.hidden = false;
@@ -224,10 +257,10 @@ form.addEventListener('submit', (event) => {
   steps.replaceChildren();
   try {
     // Normalize only on submission so typing a fourth digit remains natural.
-    const start = parseRoom(form.elements.start.value).number;
+    const start = selectedEntrance ?? parseRoom(form.elements.start.value).number;
     const end = parseRoom(form.elements.end.value).number;
     const route = navigate(start, end);
-    form.elements.start.value = start;
+    if (!selectedEntrance) form.elements.start.value = start;
     form.elements.end.value = end;
     renderNumberExplanation(start, end, Boolean(route.path));
     renderList(steps, route.path ? route.steps.slice(1) : route.steps);

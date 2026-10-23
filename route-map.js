@@ -1,6 +1,6 @@
 // Optional, accessible SVG companion to the computed walking route.
 import {school, mapLayout} from './data.js';
-import {floorName, parseRoom} from './routing.js';
+import {floorName, parseRoom, parseStart} from './routing.js';
 
 // Group consecutive floors in one building while retaining later returns to that building.
 export function buildRouteStages(path, startNumber, endNumber) {
@@ -16,7 +16,7 @@ export function buildRouteStages(path, startNumber, endNumber) {
     stage.floors.push(floor);
     stage.levels.push(floorName(floor));
   }
-  const start = parseRoom(startNumber).number;
+  const start = parseStart(startNumber).number;
   const end = parseRoom(endNumber).number;
   const startLevel = school.knownRooms[start]?.level;
   const endLevel = school.knownRooms[end]?.level;

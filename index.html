@@ -62,6 +62,11 @@
       <p class="form-intro">Directions from one room to the next.</p>
       <label for="start-room">Starting room</label>
       <input id="start-room" name="start" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}" autocapitalize="none" spellcheck="false" placeholder="2205" aria-describedby="room-help" required>
+      <section id="entrance-starts" aria-labelledby="entrance-starts-title">
+        <h2 id="entrance-starts-title">Or start at an entrance</h2>
+        <div id="entrance-buttons" role="group" aria-label="Starting entrance"></div>
+        <button id="use-start-room" class="secondary" type="button" hidden>Use a room instead</button>
+      </section>
       <label for="end-room">Destination room</label>
       <input id="end-room" enterkeyhint="go" name="end" type="text" maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}" autocapitalize="none" spellcheck="false" placeholder="2301" aria-describedby="room-help" required>
       <p id="room-help">Enter three or four digit room numbers.</p>

@@ -58,6 +58,19 @@ export function parseRoom(value) {
   return {number, floor, building, node};
 }
 
+// Entrances are accepted only as starts; destination validation remains room-only.
+export function parseStart(value) {
+  const entrance = String(value).trim().toUpperCase();
+  if (!/^[A-Z]$/.test(entrance)) return parseRoom(value);
+  const location = school.entrances[entrance];
+  if (!location) throw new Error(`Entrance ${entrance} is not on the school map.`);
+  const {building, floor, side, staircase} = location;
+  const node = `${building}-${floor}`;
+  if (!graph.has(node)) throw new Error(`Entrance ${entrance} has a building or floor absent from the school map.`);
+  return {entrance, building, floor, side, staircase, node,
+    stairwellSide: school.staircases[building]?.[staircase]?.side};
+}
+
 // Explain basement and ground-floor numbering in labels shown to users.
 export function floorName(floor) {
   return ['basement (floor 0)', '1st (ground) floor', '2nd floor', '3rd floor'][floor] ?? `${floor}th floor`;
@@ -70,6 +83,7 @@ function directionRoomLabel(room) {
 }
 // Describe the starting location, including basement grammar and special half-levels.
 export function describeRoom(room) {
+  if (room.entrance) return `Entrance ${room.entrance}, on the ${floorName(room.floor)} of the ${school.buildings[room.building].name} building`;
   const specialLevel = school.knownRooms[room.number]?.level;
   const location = specialLevel ? `a ${specialLevel}` : `${room.floor === 0 ? 'in' : 'on'} the ${floorName(room.floor)}`;
   return `${directionRoomLabel(room)}, ${location} of the ${school.buildings[room.building].name} building`;
@@ -133,7 +147,7 @@ function describePath(path, start, end) {
       let exit = i;
       while (exit + 1 < path.length && buildingOf(path[exit + 1]) === 2) exit++;
       const entrySide = i === 0
-        ? school.knownRooms[start.number]?.stairwellSide
+        ? start.stairwellSide ?? school.knownRooms[start.number]?.stairwellSide
         : school.mainStairwellSides[buildingOf(path[i - 1])];
       const exitSide = exit + 1 < path.length
         ? school.mainStairwellSides[buildingOf(path[exit + 1])]
@@ -160,13 +174,18 @@ function describePath(path, start, end) {
 }
 // Assemble a route with room descriptions and special arrival/departure instructions.
 export function navigate(startValue, endValue) {
-  const start = parseRoom(startValue);
+  const start = parseStart(startValue);
   const end = parseRoom(endValue);
   const path = findPath(graph, start.node, end.node);
   if (!path) return {path: null, steps: ['No route found. The school map may be missing a connection.']};
   const steps = [`Start at ${describeRoom(start)}.`];
   if (start.number === end.number) steps.push("You're already at the destination.");
   else {
+    if (start.entrance) {
+      steps.push(start.staircase
+        ? `From Entrance ${start.entrance}, you are beside staircase ${start.staircase} on the ${floorName(start.floor)} of the ${school.buildings[start.building].name} building.`
+        : `From Entrance ${start.entrance}, start at the ${start.side} end of the hallway on the ${floorName(start.floor)} of the ${school.buildings[start.building].name} building.`);
+    }
     const departure = school.knownRooms[start.number]?.departure;
     if (departure) steps.push(departure);
     steps.push(...describePath(path, start, end));

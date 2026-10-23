@@ -165,3 +165,12 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 #share-dialog .share-qr {width: min(100%, 296px); margin: 0 auto; background: white;}
 #share-link {overflow-wrap: anywhere;}
 #share-status {min-height: 1.5em;}
+
+/* Door letters match the signs and are choices for the starting point only. */
+#entrance-starts {margin: -.5rem 0 1.25rem;}
+#entrance-starts h2 {font-size: .8rem; font-weight: 500; color: var(--muted); margin-bottom: .5rem;}
+#entrance-buttons {display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem;}
+#entrance-buttons button {min-height: 44px; padding: .5rem; background: #f8f9fb; border-color: var(--border); color: var(--accent-dark);}
+#entrance-buttons button[aria-pressed="true"] {background: var(--accent); border-color: var(--accent); color: white;}
+#use-start-room {margin-top: .5rem;}
+#start-room:disabled {opacity: 1; background: #f5effa; color: var(--accent-dark);}

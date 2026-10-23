@@ -20,7 +20,7 @@ You don't need actually need this app (!!) if you just understand the way room- 
 
 ## Using the app
 
-Enter your starting room and destination, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `201` or `0201`.
+Enter your starting room, or select entrance **A**, **B**, **C**, or **N** using the letter above the door. Entrances are starting points only; choose **Use a room instead** to switch back. Enter your destination room, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `201` or `0201`.
 
 Walking directions provide a numbered sequence to follow. The written directions are the most accurate, but the 2D building map provides context so you can understand your approximate route, if you're a more spatial/visual person.
 
@@ -68,6 +68,8 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | [manifest.webmanifest](manifest.webmanifest) and [icons/](icons/) | App installation details and icons |
 | [sw.js](sw.js) | Offline caching and app updates |
 | [tests/](tests/) | Automated routing and offline-cache checks |
+
+`school.entrances` maps door letters to `building`, `floor`, and hallway `side`, with an optional `staircase` label. Stairwell sides come from the existing staircase metadata. Entrance positions guide the instructions; they do not add graph edges or exact hallway geometry.
 
 Building descriptions contain `name`, `highRoom` (the highest two-digit room suffix), `lowestFloor`, and `highestFloor`, with inclusive limits. Input validation accepts suffixes from 01 through `highRoom` and floors within that building’s range, and still requires a mapped building/floor node. These bounds do not verify individual rooms or create missing connections. Building 5 uses floor 1, including the Gym preset `1509`. Tests check that connections, staircases, and named destinations stay within building descriptions.
 

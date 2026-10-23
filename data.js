@@ -41,6 +41,13 @@ export const school = {
   // - Bldg 3 floor 3 does not lead in any way to Bldg 4.
   // Main-building stairwell sides used when arriving from or leaving for another building.
   mainStairwellSides: {1: 'south', 3: 'north', 4: 'north', 5: 'north'},
+  // Door signs identify starting points; hallway position does not add routing edges.
+  entrances: {
+    A: {building: 2, floor: 2, side: 'east', staircase: 'A'},
+    B: {building: 2, floor: 2, side: 'east', staircase: 'B'},
+    C: {building: 1, floor: 1, side: 'east'},
+    N: {building: 3, floor: 1, side: 'east'},
+  },
   // Named destinations and instructions that cannot be inferred from their room numbers.
   knownRooms: {
     '2103': {name: 'Cafeteria'},
