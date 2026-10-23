@@ -1,34 +1,44 @@
+// TODO:
+// - Entrance A,B,C,M,N
+// - Updated maps
+// - WTF is up with building 1 3rd floor?
+// - Location of rooms/stairwells within a hallway.
+
 // School map and destination exceptions from the original prototype; connections are unverified.
 export const school = {
   // Building identities and travel links; graph nodes use building-floor order.
   buildings: {
     1: {name: 'Cafeteria', highRoom: 12, lowestFloor: 1, highestFloor: 3},
-    2: {name: 'Main', highRoom: 12, lowestFloor: 0, highestFloor: 4},
+    2: {name: 'Main', highRoom: 12, lowestFloor: 0, highestFloor: 3},
     3: {name: 'Music/Auditorium', highRoom: 7, lowestFloor: 0, highestFloor: 3},
     4: {name: 'Math/Science', highRoom: 12, lowestFloor: 0, highestFloor: 2},
     5: {name: 'Gym', highRoom: 12, lowestFloor: 1, highestFloor: 1},
   },
   //staircases: {1: [1, 2], 2: [0, 1, 2, 3], 3: [1, 3], 4: [0, 1, 2]},
   staircases: {1: {//'X': {'side': 'north', 'floors': [1,2,3]},// not used in routing
-                   'E': {'side': 'south', 'floors': [1,2,3] }},
-               2: {'B': {'side': 'north', 'floors': [0,1,2,3]},
-                   'A': {'side': 'south', 'floors': [0,1,2,3]}},
-               4: {'J': {'side': 'west', 'floors': [0,1,2] },
+                   'E': {'side': 'north', 'floors': [1,2,3] }},
+               2: {'B': {'side': 'south', 'floors': [0,1,2,3]},
+                   'A': {'side': 'north', 'floors': [0,1,2,3]}},
+               3: {'hallway': {'side': 'west', 'floors': [1,2]}},
+               4: {'J': {'side': 'east', 'floors': [0,1,2] },
                    //'I': {'side': 'east', 'floors': [0,1,2]} // not used in routing
                   },
   },
   // Links are bidirectional. Optional stairs describe travel from `from` to `to`.
   connections: [
-    {from: '2-1', to: '1-1', stairs: {direction: 'down', extent: 'half-flight'}},
+    {from: '2-2', to: '1-2', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-3', to: '1-3', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-1', to: '5-1'},
-    //{from: '2-1', to: '3-1', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-2', to: '3-1', stairs: {direction: 'down', extent: 'half-flight'}},
-    {from: '2-3', to: '3-2', stairs: {direction: 'down', extent: 'half-flight'}},
-    {from: '2-4', to: '3-3', stairs: {direction: 'down', extent: 'half-flight'}},
+    {from: '2-3', to: '3-3', stairs: {direction: 'down', extent: 'half-flight'}},
+    //{from: '3-1', to: '3-2', stairs: {direction: 'up', extent: 'half-flight'}},
     {from: '3-1', to: '4-1', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '3-2', to: '4-2', stairs: {direction: 'up', extent: '3 steps'}},
   ],
+  // Special connection notes:
+  // - Bldg 4, floor 0, is only accessible via stairs I/J
+  // - Bldg 3, floor 3, is only accessible via Building 2 (floor 3)
+  // - Bldg 3 floor 3 does not lead in any way to Bldg 4.
   // Main-building stairwell sides used when arriving from or leaving for another building.
   mainStairwellSides: {1: 'south', 3: 'north', 4: 'north', 5: 'north'},
   // Named destinations and instructions that cannot be inferred from their room numbers.
