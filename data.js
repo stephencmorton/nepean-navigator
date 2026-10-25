@@ -8,7 +8,7 @@
 export const school = {
   // Building identities and travel links; graph nodes use building-floor order.
   buildings: {
-    1: {name: 'Cafeteria', highRoom: 12, lowestFloor: 1, highestFloor: 3},
+    1: {name: 'Art/English', highRoom: 12, lowestFloor: 1, highestFloor: 3},
     2: {name: 'Main', highRoom: 12, lowestFloor: 0, highestFloor: 3},
     3: {name: 'Music/Auditorium', highRoom: 7, lowestFloor: 0, highestFloor: 3},
     4: {name: 'Math/Science', highRoom: 12, lowestFloor: 0, highestFloor: 2},
@@ -76,7 +76,7 @@ export const mapLayout = {
   viewBox: '0 0 1200 1100',
   // Approximate side anchors: north is right, east down, south left, west up.
   buildings: {
-    1: {outline: 'M80 500H328V940H260V1065H88V940H80Z', center: [165, 760], label: ['Cafeteria'],
+    1: {outline: 'M80 500H328V940H260V1065H88V940H80Z', center: [165, 760], label: ['Art /', 'English'],
       stairwellEnds: {north: [270, 600], south: [125, 600], east: [270, 900], west: [165, 550]}},
     2: {outline: 'M328 700H889V968H732V986H486V968H328Z', center: [605, 765], label: ['Main'],
       stairwellEnds: {north: [855, 850], south: [355, 850], east: [605, 940], west: [605, 725]}},
