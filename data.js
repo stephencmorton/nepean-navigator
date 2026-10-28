@@ -16,17 +16,19 @@ export const school = {
   },
   //staircases: {1: [1, 2], 2: [0, 1, 2, 3], 3: [1, 3], 4: [0, 1, 2]},
   staircases: {1: {//'X': {'side': 'north', 'floors': [1,2,3]},// not used in routing
-                   'E': {'side': 'north', 'floors': [1,2,3] }},
+                   'E': {'side': 'north', 'floors': [1,2,3] },
+                  'hallway': {'kind': 'hallway', 'side': 'east', 'floors': [1,2]},
+                  },
                2: {'B': {'side': 'south', 'floors': [0,1,2,3]},
                    'A': {'side': 'north', 'floors': [0,1,2,3]}},
-               3: {'hallway': {'kind': 'hallway', 'side': 'west', 'floors': [1,2]}},
+               3: {'hallway': {'kind': 'hallway', 'side': 'east', 'floors': [1,2]}},
                4: {'J': {'side': 'east', 'floors': [0,1,2] },
                    //'I': {'side': 'east', 'floors': [0,1,2]} // not used in routing
                   },
   },
   // Links are bidirectional. Optional stairs describe travel from `from` to `to`.
   connections: [
-    {from: '2-2', to: '1-2', stairs: {direction: 'down', extent: 'half-flight'}},
+    {from: '2-2', to: '1-1', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-3', to: '1-3', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-1', to: '5-1'},
     {from: '2-2', to: '3-1', stairs: {direction: 'down', extent: 'half-flight'}},
