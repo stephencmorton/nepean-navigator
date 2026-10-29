@@ -22,7 +22,9 @@ You don't need actually need this app (!!) if you just understand the way room- 
 
 Enter your starting room, or select entrance **A**, **B**, **C**, or **N** using the letter above the door. Entrances are starting points only; choose **Use a room instead** to switch back. Enter your destination room, then select **Get directions**. Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `201` or `0201`.
 
-Walking directions provide a numbered sequence to follow. Plain stair symbols on the map show up/down travel, within stairwells, including Guidance’s half-level. Hallway stairs and connecting steps appear only in the written directions. Symbols overlap the route at approximate hallway ends using each staircase’s `side` and the drawing’s `stairwellEnds` anchors. They remain horizontal: read left-to-right except at the south end, where travel reads right-to-left. The map follows the written stairwell choice, showing both options when the directions allow the nearest stairwell. The written directions are the most accurate, but the 2D building map provides context so you can understand your approximate route, if you're a more spatial/visual person.
+Walking directions provide a numbered sequence to follow. The map shows the whole complex using the supplied floor SVGs, with the relevant floors for buildings along the route and ground-floor drawings for the remaining buildings. Building names come from the drawings themselves. A zigzag break marks a change of displayed floor through a mapped stairwell. At a stairwell, adjacent floor drawings are clipped and overlaid at the landing within one map. If landing coordinates differ, the arriving drawing is aligned to the departing landing. Only genuine route overlaps or missing landing geometry require a continuation below; no floor selector is needed. Compatible floors in one building share a drawing, with dark yellow circles around stairwells used by the route and purple Up/Down labels. Hallway steps remain in the written directions.
+
+Room dots are estimated along manually traced hallway centre lines: numbers increase south to north (left to right on the drawing), or east to west (bottom to top). Named exceptions show an approach point rather than an invented exact room location. Where a hallway is not drawn, such as Main’s basement, that segment is left undrawn and the map refers to the written directions. Zoom and pan to inspect details. The written directions remain the most accurate guide.
 
 ![Screenshot](docs/images/route-example.png)
 
@@ -61,7 +63,7 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | File | Purpose |
 | --- | --- |
 | [data.js](data.js) | School buildings, floor connections, stairs, and special destinations |
-| [route-map.js](route-map.js) | Optional SVG building overview for the walking route |
+| [route-map.js](route-map.js) and [floor-map.js](floor-map.js) | Composite floor drawings, estimated room positions, traced hallways, and map controls |
 | [routing.js](routing.js) | Room parsing, route finding, and written directions |
 | [app.js](app.js) | Form behaviour, results, installation help, and service-worker registration |
 | [index.html](index.html) and [style.css](style.css) | Page content, structure, and appearance |
@@ -71,13 +73,17 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 
 Named destinations can supply `arrivalStairs` or `departureStairs` objects with `kind: "stairwell"`, `direction`, and a short map `label` for stairs outside the graph, such as Guidance’s half-level. Their written `arrival`/`departure` instructions remain the full description.
 
-`school.entrances` maps door letters to `building`, `floor`, and hallway `side`, with an optional `staircase` label. Stairwell sides come from the existing staircase metadata. Entrance positions guide the instructions; they do not add graph edges or exact hallway geometry.
+`school.entrances` maps door letters to `building`, `floor`, and hallway `side`, with an optional `staircase` label. `floor` is the hallway level reached after entering; optional `doorFloor` records a different physical door level. C and N are ground-level doors whose hallway stairs lead to floor 2, so routing starts at floor 2 and the instructions explain the approach. Stairwell sides come from the existing staircase metadata. Entrance positions guide the instructions; they do not add graph edges or exact hallway geometry.
 
 Building descriptions contain `name`, `highRoom` (the highest two-digit room suffix), `lowestFloor`, and `highestFloor`, with inclusive limits. Input validation accepts suffixes from 01 through `highRoom` and floors within that building’s range, and still requires a mapped building/floor node. These bounds do not verify individual rooms or create missing connections. Building 5 uses floor 1, including the Gym preset `1509`. Tests check that connections, staircases, and named destinations stay within building descriptions.
 
 For map edits, room numbers use **floor-building-room digits**, while connection keys use **building-floor**. For example, room `2412` belongs to node `4-2`. Each building’s `staircases` object is keyed by staircase label, for example `J: {side: "west", floors: [0, 1, 2]}`. Each staircase connects every pair of its listed floors. Use `kind: "hallway"` for hallway steps that should not receive a stairwell badge. Directions show the label and hallway end; when no side is known, they list the staircases serving both floors. Connections are a list of `{from, to}` objects using graph node IDs, with optional `stairs: {direction: "down", extent: "half-flight"}` metadata. Direction describes travel from `from` to `to`; reverse travel swaps `up` and `down`. Use `direction: "unknown"` when stairs are known but their direction is not. Omit `stairs` when no stair instruction is mapped; this does not establish step-free access. Connections are automatically bidirectional and remain one graph edge regardless of connecting stairs. Check school-map corrections against the actual building before treating them as confirmed.
 
-The building outlines and schematic connector coordinates live in `mapLayout` in `data.js`. These are display geometry only; routing connections still come from `school.connections` and `school.staircases`. Keep their roles separate when editing. Original top-view and isometric reference images are in [references/maps/](references/maps/); those development references are not deployed with the app.
+The active floor-map display geometry lives in `floor-map.js`, using a 773 × 742 coordinate canvas aligned with `public/floor-0.svg` through `public/floor-3.svg`. Hallway centre lines, branch junctions, staircase landings, entrance points, building ports, and clipping bounds are explicit. Rectangle overlaps in the artwork do not create connections. Room interpolation follows path length, not a straight line through bends. The per-building room limit currently applies on every floor.
+
+Keep SVG canvas dimensions and alignment stable when refining the artwork. Register new geometry explicitly, and cache/stage any new deployed assets. The older `mapLayout` schematic in `data.js` and its helper functions remain as reference geometry; they do not drive the new floor drawings. Routing still comes only from `school.connections` and `school.staircases`.
+
+A route may use any equally valid nearest stairwell when the written directions offer a choice; the display selects the closest allowed option along the traced hall from the estimated entry point. Special arrivals and departures remain in the written directions. The images are approximate, and the composite does not establish step-free access or verified individual room locations.
 
 ### Check your changes
 

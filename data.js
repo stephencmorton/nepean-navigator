@@ -1,8 +1,11 @@
 // TODO:
 // - Entrance A,B,C,M,N
-// - Updated maps
-// - WTF is up with building 1 3rd floor?
 // - Location of rooms/stairwells within a hallway.
+// - Fix up building 3 level 1/2 hallway stairs.
+// - Circle around stairwells when go up or down.
+// - UI/UX has become ugly again.
+// - Re-review to clean up code.
+// - Are stairs/hallways designed optimally/sensibly?
 
 // School map and destination exceptions from the original prototype; connections are unverified.
 export const school = {
@@ -28,10 +31,10 @@ export const school = {
   },
   // Links are bidirectional. Optional stairs describe travel from `from` to `to`.
   connections: [
-    {from: '2-2', to: '1-1', stairs: {direction: 'down', extent: 'half-flight'}},
+    {from: '2-2', to: '1-2', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-3', to: '1-3', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-1', to: '5-1'},
-    {from: '2-2', to: '3-1', stairs: {direction: 'down', extent: 'half-flight'}},
+    {from: '2-2', to: '3-2', stairs: {direction: 'down', extent: 'half-flight'}},
     {from: '2-3', to: '3-3', stairs: {direction: 'down', extent: 'half-flight'}},
     //{from: '3-1', to: '3-2', stairs: {direction: 'up', extent: 'half-flight'}},
     {from: '3-1', to: '4-1', stairs: {direction: 'down', extent: 'half-flight'}},
@@ -43,12 +46,13 @@ export const school = {
   // - Bldg 3 floor 3 does not lead in any way to Bldg 4.
   // Main-building stairwell sides used when arriving from or leaving for another building.
   mainStairwellSides: {1: 'south', 3: 'north', 4: 'north', 5: 'north'},
+  // floor is the hallway level reached after entering; doorFloor records a different physical door level.
   // Door signs identify starting points; hallway position does not add routing edges.
   entrances: {
     A: {building: 2, floor: 2, side: 'east', staircase: 'A'},
     B: {building: 2, floor: 2, side: 'east', staircase: 'B'},
-    C: {building: 1, floor: 1, side: 'east'},
-    N: {building: 3, floor: 1, side: 'east'},
+    C: {building: 1, floor: 2, doorFloor: 1, side: 'east'},
+    N: {building: 3, floor: 2, doorFloor: 1, side: 'east'},
   },
   // Named destinations and instructions that cannot be inferred from their room numbers.
   knownRooms: {

@@ -13,6 +13,9 @@ test('entrances have mapped locations, valid floors, and matching staircases', (
     assert.ok(graph.has(start.node));
     const building = school.buildings[start.building];
     assert.ok(start.floor >= building.lowestFloor && start.floor <= building.highestFloor);
+    if (start.doorFloor !== undefined) {
+      assert.ok(start.doorFloor >= building.lowestFloor && start.doorFloor <= building.highestFloor);
+    }
     assert.equal(start.side, 'east');
     if (entrance.staircase) {
       const stairs = school.staircases[start.building][entrance.staircase];
@@ -53,9 +56,12 @@ test('Main entrances use the known staircase side and preserve Guidance crossing
   }
 });
 test('C and N orient users at the east end, including same-floor destinations', () => {
-  for (const [id, room] of [['C', '1101'], ['N', '1306']]) {
+  for (const [id, room] of [['C', '2101'], ['N', '2306']]) {
     const route = navigate(id, room);
     assert.equal(route.path.length, 1);
+    assert.equal(parseStart(id).floor, 2);
+    assert.match(route.steps[0], /1st \(ground\) floor/);
+    assert.match(route.steps[1], /hallway stairs.*2nd floor/);
     assert.match(route.steps[1], /east end of the hallway/);
     assert.match(route.steps.at(-1), /Stay on this floor/);
     assert.doesNotMatch(route.steps.join(' '), /already at the destination/);

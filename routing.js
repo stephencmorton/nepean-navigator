@@ -64,10 +64,10 @@ export function parseStart(value) {
   if (!/^[A-Z]$/.test(entrance)) return parseRoom(value);
   const location = school.entrances[entrance];
   if (!location) throw new Error(`Entrance ${entrance} is not on the school map.`);
-  const {building, floor, side, staircase} = location;
+  const {building, floor, doorFloor, side, staircase} = location;
   const node = `${building}-${floor}`;
   if (!graph.has(node)) throw new Error(`Entrance ${entrance} has a building or floor absent from the school map.`);
-  return {entrance, building, floor, side, staircase, node,
+  return {entrance, building, floor, doorFloor, side, staircase, node,
     stairwellSide: school.staircases[building]?.[staircase]?.side};
 }
 
@@ -83,7 +83,7 @@ function directionRoomLabel(room) {
 }
 // Describe the starting location, including basement grammar and special half-levels.
 export function describeRoom(room) {
-  if (room.entrance) return `Entrance ${room.entrance}, on the ${floorName(room.floor)} of the ${school.buildings[room.building].name} building`;
+  if (room.entrance) return `Entrance ${room.entrance}, on the ${floorName(room.doorFloor ?? room.floor)} of the ${school.buildings[room.building].name} building`;
   const specialLevel = school.knownRooms[room.number]?.level;
   const location = specialLevel ? `a ${specialLevel}` : `${room.floor === 0 ? 'in' : 'on'} the ${floorName(room.floor)}`;
   return `${directionRoomLabel(room)}, ${location} of the ${school.buildings[room.building].name} building`;
@@ -192,7 +192,9 @@ export function navigate(startValue, endValue) {
   if (start.number === end.number) steps.push("You're already at the destination.");
   else {
     if (start.entrance) {
-      steps.push(start.staircase
+      steps.push(start.doorFloor !== undefined && start.doorFloor !== start.floor
+        ? `From Entrance ${start.entrance}, follow the hallway stairs to the ${start.side} end of the hallway on the ${floorName(start.floor)} of the ${school.buildings[start.building].name} building.`
+        : start.staircase
         ? `From Entrance ${start.entrance}, you are beside staircase ${start.staircase} on the ${floorName(start.floor)} of the ${school.buildings[start.building].name} building.`
         : `From Entrance ${start.entrance}, start at the ${start.side} end of the hallway on the ${floorName(start.floor)} of the ${school.buildings[start.building].name} building.`);
     }

@@ -203,7 +203,7 @@ function renderRouteSummary(start, end) {
     const room = prefix === 'from' ? parseStart(number) : parseRoom(number);
     const name = school.knownRooms[number]?.name;
     document.querySelector(`#route-${prefix}-label`).textContent = room.entrance ? `Entrance ${room.entrance}` : name ? `${name} · ${number}` : `Room ${number}`;
-    const level = school.knownRooms[number]?.level ?? floorName(room.floor);
+    const level = school.knownRooms[number]?.level ?? floorName(room.doorFloor ?? room.floor);
     document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building].name} · ${level}`;
   }
 }

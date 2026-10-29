@@ -1,4 +1,5 @@
 // Optional, accessible SVG companion to the computed walking route.
+import {renderFloorComposite} from './floor-map.js';
 import {school, mapLayout} from './data.js';
 import {floorName, parseRoom, parseStart, staircaseChoices, mainStairwellVisit} from './routing.js';
 
@@ -123,20 +124,12 @@ export function stairCuePosition(cue, layout = mapLayout) {
   return layout.buildings[cue.building]?.stairwellEnds?.[cue.side] ?? null;
 }
 
-// Two horizontal stair silhouettes; southward travel is read right-to-left.
+// Legacy schematic silhouettes; the floor-plan display highlights the drawn stairwell instead.
 export function stairIconPath(direction, travelSide) {
   const risesLeftToRight = (direction === 'up') !== (travelSide === 'south');
   return risesLeftToRight
     ? 'M-40 32H-20V16H0V0H20V-16H40V-32'
     : 'M-40 -32H-20V-16H0V0H20V16H40V32';
-}
-
-// Create SVG elements with explicit namespaces and plain-text labels.
-function svgElement(name, attributes = {}, text = '') {
-  const element = document.createElementNS('http://www.w3.org/2000/svg', name);
-  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
-  if (text) element.textContent = text;
-  return element;
 }
 
 // Show the walking route as one overview, with zoom controls and no separate itinerary.
@@ -147,68 +140,7 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   if (!stages.length) return;
 
   const stairCues = buildStairCues(path, startNumber, endNumber);
-  const svg = svgElement('svg', {viewBox: mapLayout.viewBox, role: 'img', 'aria-labelledby': 'building-map-title building-map-description', class: 'building-map'});
-  svg.append(
-    svgElement('title', {id: 'building-map-title'}, 'Your route through the school buildings'),
-    svgElement('desc', {id: 'building-map-description'}, `Approximate top view. Building order: ${stages.map(stage => `${stage.building}, ${school.buildings[stage.building].name}`).join('; ')}. Gray dotted hallways follow the supplied memory-based sketch. Purple arrows show the route, with Main's connections near its ends. Stair symbols show vertical travel; southward travel reads right-to-left. ${stairCues.map(cue => cue.description).join(' ')}`),
-  );
-  const defs = svgElement('defs');
-  const marker = svgElement('marker', {id: 'building-map-arrow', viewBox: '0 0 10 10', refX: '8', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto'});
-  marker.append(svgElement('path', {d: 'M0 0L10 5L0 10Z', fill: '#7526b8'}));
-  defs.append(marker);
-  svg.append(defs, svgElement('path', {d: mapLayout.background, class: 'map-background'}));
-
-  const visited = new Set(stages.map(stage => stage.building));
-  // Draw footprints before connectors so the highlighted route remains legible above them.
-  for (const [number, geometry] of Object.entries(mapLayout.buildings)) {
-    const group = svgElement('g', {class: `map-building${visited.has(Number(number)) ? ' on-route' : ''}`});
-    group.append(svgElement('path', {d: geometry.outline, class: 'map-footprint'}));
-    svg.append(group);
-  }
-  // Show the remembered hallway network as context beneath the highlighted route.
-  for (const points of mapLayout.hallways) {
-    svg.append(svgElement('polyline', {points: points.map(point => point.join(',')).join(' '), class: 'map-hallway'}));
-  }
-  for (const points of routeMapLinks(stages)) {
-    if (points) {
-      svg.append(svgElement('polyline', {points: points.map(point => point.join(',')).join(' '), class: 'map-route-line'}));
-      const arrow = linkArrow(points);
-      if (arrow) svg.append(svgElement('line', {...arrow, class: 'map-direction', 'marker-end': 'url(#building-map-arrow)'}));
-    }
-  }
-  // White label backgrounds separate building identities from the illustrative route strokes.
-  for (const [number, geometry] of Object.entries(mapLayout.buildings)) {
-    const [x, y] = geometry.center;
-    const label = svgElement('g', {class: `map-building-label${visited.has(Number(number)) ? ' on-route' : ''}`});
-    label.append(svgElement('rect', {x: x - 85, y: y - 55, width: 170, height: 135, rx: 14}));
-    label.append(svgElement('text', {x, y: y - 8, class: 'map-building-number'}, number));
-    geometry.label.forEach((line, index) => {
-      label.append(svgElement('text', {x, y: y + 30 + index * 30, class: 'map-building-name'}, line));
-    });
-    svg.append(label);
-  }
-
-  // Overlay plain stair silhouettes on the route at the appropriate hallway end.
-  const symbolCounts = new Map();
-  const shownSymbols = new Set();
-  for (const cue of stairCues) {
-    const anchor = stairCuePosition(cue);
-    if (!anchor || !['up', 'down'].includes(cue.direction)) continue;
-    const key = `${cue.building}-${cue.side}`;
-    const identity = `${key}-${cue.direction}`;
-    if (shownSymbols.has(identity)) continue;
-    shownSymbols.add(identity);
-    const index = symbolCounts.get(key) ?? 0;
-    symbolCounts.set(key, index + 1);
-    // Repeated movements sit along the hallway rather than on top of each other.
-    const offset = index * 100;
-    const x = anchor[0] + (cue.side === 'south' ? offset : cue.side === 'north' ? -offset : 0);
-    const y = anchor[1] + (cue.side === 'west' ? offset : cue.side === 'east' ? -offset : 0);
-    const symbol = svgElement('g', {class: 'map-stairs', transform: `translate(${x} ${y})`});
-    symbol.append(svgElement('title', {}, cue.description));
-    symbol.append(svgElement('path', {d: stairIconPath(cue.direction, cue.side), class: 'map-stair-icon'}));
-    svg.append(symbol);
-  }
+  const composite = renderFloorComposite(path, startNumber, endNumber, stairCues);
 
   // Let small screens inspect the full SVG detail with native scrolling and keyboard panning.
   const viewport = document.createElement('div');
@@ -216,7 +148,7 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   viewport.tabIndex = 0;
   viewport.setAttribute('role', 'region');
   viewport.setAttribute('aria-label', 'Building map; zoom in and scroll to pan');
-  viewport.append(svg);
+  viewport.append(composite);
   const tools = document.createElement('div');
   tools.className = 'map-tools';
   tools.setAttribute('role', 'group');
@@ -226,7 +158,8 @@ export function renderRouteMap(container, path, startNumber, endNumber) {
   // Keep zoom controls usable with touch, keyboard, and a screen reader.
   function setZoom(value) {
     zoom = Math.max(1, Math.min(3, value));
-    svg.style.width = `${zoom * 100}%`;
+    composite.style.width = `${zoom * 100}%`;
+    composite.style.setProperty('--map-zoom', zoom);
     zoomButtons[0].disabled = zoom === 1;
     zoomButtons[1].textContent = `${zoom * 100}%`;
     zoomButtons[2].disabled = zoom === 3;

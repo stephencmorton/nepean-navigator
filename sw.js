@@ -1,13 +1,13 @@
 // Offline app-shell caching scoped to this installation's directory and version.
 // Bump VERSION whenever a deployed app-shell file changes.
-const VERSION = 'v0.2.64';
+const VERSION = 'v0.2.73';
 // Scope asset URLs and cache ownership to support both root and subpath hosting.
 const BASE = new URL('./', self.location.href);
 const PREFIX = `nepean-navigator:${BASE.pathname}:`;
 const CACHE = PREFIX + VERSION;
 const HOME = new URL('index.html', BASE).href;
 // Resolve the complete shell against the installation directory rather than the domain root.
-const ASSETS = ['index.html', 'app.js', 'route-map.js', 'routing.js', 'data.js', 'style.css', 'manifest.webmanifest', 'icons/helmet-32.png', 'icons/helmet-192.png', 'icons/helmet-512.png', 'public/nepean_infographic.png', 'public/share-qr.svg'].map(path => new URL(path, BASE).href);
+const ASSETS = ['index.html', 'app.js', 'route-map.js', 'floor-map.js', 'routing.js', 'data.js', 'style.css', 'manifest.webmanifest', 'icons/helmet-32.png', 'icons/helmet-192.png', 'icons/helmet-512.png', 'public/nepean_infographic.png', 'public/share-qr.svg', 'public/floor-0.svg', 'public/floor-1.svg', 'public/floor-2.svg', 'public/floor-3.svg'].map(path => new URL(path, BASE).href);
 // Download the entire shell before allowing this worker to finish installation.
 self.addEventListener('install', event => {
   // Populate the versioned cache atomically through the browser's bulk cache operation.
