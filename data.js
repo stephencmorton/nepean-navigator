@@ -1,9 +1,10 @@
 // TODO:
-// - Add entrance M
+// - Add entrance M ?
 // - Location of rooms/stairwells within a hallway.
 // - Fix up building 3 level 1/2 hallway stairs.
 // - UI/UX has become ugly again.
 // - Are stairs/hallways designed optimally/sensibly?
+// - Add Princeton and Broadview streets for context. And cardinal directions.
 
 // School map and destination exceptions from the original prototype; connections are unverified.
 export const school = {

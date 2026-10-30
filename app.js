@@ -11,31 +11,6 @@ const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
 const changeRoute = document.querySelector('#change-route');
 const routeMapPanel = document.querySelector('#route-map-panel');
-let mapCollapse;
-function cancelMapCollapse() {
-  mapCollapse?.cancel();
-  mapCollapse = null;
-}
-// Start with the overview visible, then close its accordion over two seconds.
-function revealDirections() {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    routeMapPanel.open = false;
-    return;
-  }
-  const fullHeight = routeMapPanel.getBoundingClientRect().height;
-  const closedHeight = routeMapPanel.querySelector('summary').getBoundingClientRect().height
-    + routeMapPanel.offsetHeight - routeMapPanel.clientHeight;
-  mapCollapse = routeMapPanel.animate([
-    {height: `${fullHeight}px`},
-    {height: `${closedHeight}px`},
-  ], {duration: 2000, easing: 'ease-in-out', fill: 'forwards'});
-  mapCollapse.onfinish = () => {
-    routeMapPanel.open = false;
-    cancelMapCollapse();
-  };
-}
-routeMapPanel.addEventListener('pointerdown', cancelMapCollapse);
-routeMapPanel.addEventListener('keydown', cancelMapCollapse);
 const numberExplanation = document.querySelector('#number-explanation');
 numberExplanation.addEventListener('click', event => {
   if (!event.target.closest('summary')) numberExplanation.open = false;
@@ -212,7 +187,6 @@ for (const input of roomInputs) {
   });
 }
 changeRoute.addEventListener('click', () => {
-  cancelMapCollapse();
   selectEntrance(null);
   form.elements.start.value = form.elements.end.value;
   form.elements.end.value = '';
@@ -223,7 +197,6 @@ changeRoute.addEventListener('click', () => {
 });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
-  cancelMapCollapse();
   error.hidden = true;
   result.hidden = true;
   steps.replaceChildren();
@@ -242,7 +215,6 @@ form.addEventListener('submit', (event) => {
     summary.hidden = !route.path;
     renderRouteMap(document.querySelector('#route-map'), route);
     routeMapPanel.hidden = !route.path;
-    routeMapPanel.open = Boolean(route.path);
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.
@@ -250,7 +222,6 @@ form.addEventListener('submit', (event) => {
     document.body.classList.toggle('showing-route', Boolean(route.path));
     title.focus({preventScroll: true});
     result.scrollIntoView({block: 'start', behavior: 'instant'});
-    if (route.path) revealDirections();
   } catch (exception) {
     error.textContent = exception.message;
     error.hidden = false;

@@ -131,19 +131,25 @@ body:has(.info-dialog[open]) {overflow: hidden;}
   .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg, .showing-route #steps {animation: none;}
 }
 
-/* An optional building overview supports the single walking-directions list. */
-#route-map-panel {margin: 0 0 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: clip;}
-#route-map-panel > summary {padding: .8rem 1rem; color: #343b47; font-size: .875rem; font-weight: 600;}
-#route-map-panel > summary > span {float: right; margin-top: .1rem; color: var(--muted); font-size: .7rem; font-weight: 400;}
-#route-map {padding: 0 .8rem .8rem;}
+/* Phone users get written steps in portrait and the route map in landscape. */
+#route-map-panel {display: none; margin: 0 0 1.5rem;}
+#map-orientation-hint {display: none;}
+#route-map {padding: 0;}
 .map-viewport {max-height: 75vh; overflow: auto; background: #fafbfc; border: 1px solid #edf0f3; border-radius: .5rem;}
-.map-tools {display: flex; justify-content: flex-end; margin: 0 0 .5rem; gap: .3rem;}
-.map-tools button {width: auto; min-width: 44px; min-height: 44px; padding: .35rem .6rem; background: white; border-color: var(--border); color: var(--accent-dark); font-size: .85rem;}
-.map-tools button:hover {background: #f6f0fb;}
+.map-viewport {touch-action: pan-x pan-y pinch-zoom;}
 .directions-label {margin: 0 0 1rem; font-size: .875rem; font-weight: 600;}
-@media (max-width: 360px) {
-  #route-map-panel > summary {padding: .7rem;}
-  #route-map-panel > summary > span {float: none; margin-left: .4rem;}
+@media (orientation: portrait) and (max-width: 700px) {
+  #map-orientation-hint {display: flex; align-items: center; justify-content: center; gap: .7rem; margin: 0 0 1.5rem; padding: 1rem; border: 2px solid #d5b8ea; border-radius: var(--radius); color: var(--accent-dark); background: #f5effa; text-align: center; font-size: 1rem; font-weight: 700;}
+  #map-orientation-hint span {font-size: 1.7rem; line-height: 1;}
+}
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 600px) {
+  header, footer, .route-header, #route-summary, #map-orientation-hint, .directions-label, #steps, #number-explanation {display: none;}
+  main {max-width: none; margin: 0; padding: 0;}
+  #result {padding: 0; border: 0; border-radius: 0; box-shadow: none;}
+  #route-map-panel {display: block; margin: 0;}
+  #route-map {padding: 0;}
+  .map-viewport {height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0;}
+  #route-map .floor-route-map {max-height: 100dvh;}
 }
 
 /* Keep the QR code crisp and its public address readable on narrow screens. */
@@ -168,7 +174,7 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 
 /* Floor drawings are composed automatically; users follow breaks without floor controls. */
 .floor-composite {width: 100%; background: white;}
-.floor-route-map {display: block; width: 100%; height: auto; max-height: calc(65vh * var(--map-zoom, 1));}
+.floor-route-map {display: block; width: 100%; height: auto; max-height: 65vh;}
 .floor-route-line {fill: none; stroke: #a50086; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round;}
 .floor-endpoint-label {font: 600 11px -apple-system, sans-serif; fill: #6d0059; paint-order: stroke; stroke: white; stroke-width: 3px; stroke-linejoin: round;}
 .floor-route-endpoint {fill: white; stroke: #a50086; stroke-width: 3;}

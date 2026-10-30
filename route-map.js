@@ -124,33 +124,7 @@ export function renderRouteMap(container, route) {
   viewport.className = 'map-viewport';
   viewport.tabIndex = 0;
   viewport.setAttribute('role', 'region');
-  viewport.setAttribute('aria-label', 'Building map; zoom in and scroll to pan');
+  viewport.setAttribute('aria-label', 'Building map; pinch to zoom and scroll to pan');
   viewport.append(composite);
-  const tools = document.createElement('div');
-  tools.className = 'map-tools';
-  tools.setAttribute('role', 'group');
-  tools.setAttribute('aria-label', 'Map zoom');
-  let zoom = 1;
-  const zoomButtons = [];
-  function setZoom(value) {
-    zoom = Math.max(1, Math.min(3, value));
-    composite.style.width = `${zoom * 100}%`;
-    composite.style.setProperty('--map-zoom', zoom);
-    zoomButtons[0].disabled = zoom === 1;
-    zoomButtons[1].textContent = `${zoom * 100}%`;
-    zoomButtons[2].disabled = zoom === 3;
-    if (zoom === 1) viewport.scrollTo(0, 0);
-  }
-  for (const [text, label, delta] of [['−', 'Zoom out', -.5], ['100%', 'Reset map zoom', 0], ['+', 'Zoom in', .5]]) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = text;
-    button.setAttribute('aria-label', label);
-    button.addEventListener('click', () => setZoom(delta ? zoom + delta : 1));
-    tools.append(button);
-    zoomButtons.push(button);
-  }
-
-  container.append(tools, viewport);
-  setZoom(1);
+  container.append(viewport);
 }
