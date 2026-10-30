@@ -46,3 +46,11 @@ test('Main entrances keep their own stairwell when changing floors', () => {
     assert.ok(map.sections[0].movements.every(move => move.staircase === id && move.direction === 'down'));
   }
 });
+
+test('the route from Entrance C to the Gym marks staircase B', () => {
+  const map = buildCompositeMap(navigate('C', '1509'));
+  const main = map.sections.find(section => section.building === 2);
+  assert.ok(main.movements.some(move => move.staircase === 'B' && move.direction === 'down'));
+  assert.ok(main.stairs.has('B'));
+  assert.ok(!main.movements.some(move => move.staircase === 'A'));
+});

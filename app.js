@@ -11,6 +11,14 @@ const title = document.querySelector('#route-title');
 const summary = document.querySelector('#route-summary');
 const changeRoute = document.querySelector('#change-route');
 const routeMapPanel = document.querySelector('#route-map-panel');
+const mapDisclosureAction = routeMapPanel.querySelector('summary span');
+routeMapPanel.addEventListener('toggle', () => {
+  mapDisclosureAction.textContent = routeMapPanel.open ? 'Click to collapse' : 'Click to expand';
+});
+const phoneLandscape = window.matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)');
+phoneLandscape.addEventListener('change', () => {
+  if (!routeMapPanel.hidden) routeMapPanel.open = phoneLandscape.matches;
+});
 const numberExplanation = document.querySelector('#number-explanation');
 numberExplanation.addEventListener('click', event => {
   if (!event.target.closest('summary')) numberExplanation.open = false;
@@ -215,6 +223,7 @@ form.addEventListener('submit', (event) => {
     summary.hidden = !route.path;
     renderRouteMap(document.querySelector('#route-map'), route);
     routeMapPanel.hidden = !route.path;
+    routeMapPanel.open = Boolean(route.path && phoneLandscape.matches);
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.

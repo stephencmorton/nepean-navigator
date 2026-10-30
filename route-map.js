@@ -42,6 +42,16 @@ function renderFloorComposite(route) {
     const arrowId = `floor-route-arrow-${sheetIndex}`;
     const arrow = element('marker', {id: arrowId, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 3, markerHeight: 3, orient: 'auto'});
     arrow.append(element('path', {d: 'M0 0L10 5L0 10Z', fill: '#a50086'})); defs.append(arrow); svg.append(defs);
+    // Preserve shared street and compass artwork outside the building-specific image clips.
+    const contextClipId = `floor-context-${sheetIndex}`;
+    const contextClip = element('clipPath', {id: contextClipId, clipPathUnits: 'userSpaceOnUse'});
+    const buildingHoles = Object.keys(bounds).map(Number).map(building => {
+      const points = sectionPolygon({building, offset: [0, 0]});
+      return `M${points[0].join(',')}${points.slice(1).map(point => `L${point.join(',')}`).join('')}Z`;
+    }).join(' ');
+    contextClip.append(element('path', {d: `M0,0H773V742H0Z ${buildingHoles}`, 'clip-rule': 'evenodd'}));
+    defs.append(contextClip);
+    svg.append(element('image', {href: './public/floor-1.svg', x: 0, y: 0, width: 773, height: 742, preserveAspectRatio: 'none', 'clip-path': `url(#${contextClipId})`}));
     for (const section of layers) {
       const clipId = `floor-section-${sequence++}`;
       const clip = element('clipPath', {id: clipId});

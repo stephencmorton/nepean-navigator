@@ -131,22 +131,26 @@ body:has(.info-dialog[open]) {overflow: hidden;}
   .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg, .showing-route #steps {animation: none;}
 }
 
-/* Phone users get written steps in portrait and the route map in landscape. */
-#route-map-panel {display: none; margin: 0 0 1.5rem;}
+/* Browser users can expand the map; phones use the map in landscape. */
+#route-map-panel {margin: 0 0 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: clip;}
+#route-map-panel > summary {padding: .8rem 1rem; color: #343b47; font-size: .875rem; font-weight: 600; cursor: pointer;}
+#route-map-panel > summary > span {float: right; margin-top: .1rem; color: var(--muted); font-size: .7rem; font-weight: 400;}
 #map-orientation-hint {display: none;}
-#route-map {padding: 0;}
+#route-map {padding: 0 .8rem .8rem;}
 .map-viewport {max-height: 75vh; overflow: auto; background: #fafbfc; border: 1px solid #edf0f3; border-radius: .5rem;}
 .map-viewport {touch-action: pan-x pan-y pinch-zoom;}
 .directions-label {margin: 0 0 1rem; font-size: .875rem; font-weight: 600;}
-@media (orientation: portrait) and (max-width: 700px) {
+@media (orientation: portrait) and (max-width: 700px) and (pointer: coarse) {
   #map-orientation-hint {display: flex; align-items: center; justify-content: center; gap: .7rem; margin: 0 0 1.5rem; padding: 1rem; border: 2px solid #d5b8ea; border-radius: var(--radius); color: var(--accent-dark); background: #f5effa; text-align: center; font-size: 1rem; font-weight: 700;}
   #map-orientation-hint span {font-size: 1.7rem; line-height: 1;}
+  #route-map-panel {display: none;}
 }
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 600px) {
   header, footer, .route-header, #route-summary, #map-orientation-hint, .directions-label, #steps, #number-explanation {display: none;}
   main {max-width: none; margin: 0; padding: 0;}
   #result {padding: 0; border: 0; border-radius: 0; box-shadow: none;}
-  #route-map-panel {display: block; margin: 0;}
+  #route-map-panel {margin: 0; border: 0; border-radius: 0;}
+  #route-map-panel > summary {display: none;}
   #route-map {padding: 0;}
   .map-viewport {height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0;}
   #route-map .floor-route-map {max-height: 100dvh;}

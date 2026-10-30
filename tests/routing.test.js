@@ -63,14 +63,14 @@ test('known numbers display names in directions', () => {
 });
 
 test('leaving Main selects the stairwell for the destination building', () => {
-  for (const destination of ['1101', '3301', '1401', '1501']) {
+  for (const destination of ['1101', '3301', '1401']) {
     const side = destination === '1101' ? 'south' : 'north';
     assert.match(navigate('2205', destination).steps[1], new RegExp(`Head to the ${side} ${['1101', '1401'].includes(destination) ? 'end of the hallway' : 'stairwell'}`));
   }
 });
 
 test('passing through Main crosses the building only between opposite sides', () => {
-  for (const northRoom of ['2301', '1401', '1501']) {
+  for (const northRoom of ['2301', '1401']) {
     for (const [start, end, side] of [['1101', northRoom, 'north'], [northRoom, '1101', 'south']]) {
       const steps = navigate(start, end).steps;
       assert.equal(steps.filter(step => step.includes('Walk through')).length, 1);
@@ -80,6 +80,12 @@ test('passing through Main crosses the building only between opposite sides', ()
   assert.ok(!navigate('1401', '2301').steps.some(step => step.includes('Walk through')));
   assert.ok(!navigate('1401', '1501').steps.some(step => step.includes('Walk through')));
   assert.ok(!navigate('2205', '2206').steps.some(step => step.includes('stairwell')));
+});
+
+test('Entrance C to the Gym uses the closer south staircase B', () => {
+  const route = navigate('C', '1509');
+  assert.ok(route.steps.some(step => /staircase B at the south end/.test(step)));
+  assert.ok(!route.steps.some(step => /Walk through the Main building to the north/.test(step)));
 });
 
 test('Guidance uses the south stairwell and retains half-level directions', () => {

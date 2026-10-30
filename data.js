@@ -2,9 +2,10 @@
 // - Add entrance M ?
 // - Location of rooms/stairwells within a hallway.
 // - Fix up building 3 level 1/2 hallway stairs.
-// - UI/UX has become ugly again.
+// - UI/UX has become ugly again?
 // - Are stairs/hallways designed optimally/sensibly?
-// - Add Princeton and Broadview streets for context. And cardinal directions.
+// - Building 3 stairs down - encode properly. And draw on map nicely. Ask AI how best to do.
+// - Add stairwell symbols to 0th floor map building 4.
 
 // School map and destination exceptions from the original prototype; connections are unverified.
 export const school = {
@@ -21,7 +22,7 @@ export const school = {
   staircases: {
     1: {
       // X: {side: 'north', floors: [1, 2, 3]}, // not used in routing
-      E: {side: 'north', floors: [1, 2, 3]},
+      E: {side: 'north', floors: [2, 3]},
       hallway: {kind: 'hallway', side: 'east', floors: [1, 2]},
     },
     2: {
@@ -50,7 +51,8 @@ export const school = {
   // - Bldg 3, floor 3, is only accessible via Building 2 (floor 3)
   // - Bldg 3 floor 3 does not lead in any way to Bldg 4.
   // Main-building stairwell sides used when arriving from or leaving for another building.
-  mainStairwellSides: {1: 'south', 3: 'north', 4: 'north', 5: 'north'},
+  // The Gym joins Main between A and B, so use the route's approach to choose a staircase.
+  mainStairwellSides: {1: 'south', 3: 'north', 4: 'north'},
   // floor is the hallway level reached after entering; doorFloor records a different physical door level.
   // Door signs identify starting points; hallway position does not add routing edges.
   entrances: {
@@ -61,7 +63,7 @@ export const school = {
   },
   // Named destinations and instructions that cannot be inferred from their room numbers.
   knownRooms: {
-    '2103': {name: 'Cafeteria'},
+    '2103': {name: 'Cafeteria'}, // Even though it's really on the 1st floor, I think.
     '2201': {
       name: 'Guidance',
       level: 'half-level below the 2nd floor',
