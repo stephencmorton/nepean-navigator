@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {school} from '../data.js';
 import {graph, navigate, parseStart, parseRoom} from '../routing.js';
-import {buildRouteStages} from '../route-map.js';
+import {buildCompositeMap} from '../floor-map.js';
 
 test('entrances have mapped locations, valid floors, and matching staircases', () => {
   assert.deepEqual(Object.keys(school.entrances), ['A', 'B', 'C', 'N']);
@@ -38,8 +38,8 @@ test('every entrance routes to rooms and renders map stages without a fake room 
       assert.equal(route.path.at(-1), parseRoom(destination).node);
       assert.match(route.steps[0], new RegExp(`Entrance ${id}`));
       assert.match(route.steps[1], new RegExp(`From Entrance ${id}`));
-      const stages = buildRouteStages(route.path, id, destination);
-      assert.equal(stages[0].building, school.entrances[id].building);
+      const map = buildCompositeMap(route);
+      assert.equal(map.sections[0].building, school.entrances[id].building);
     }
   }
 });

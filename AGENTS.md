@@ -16,7 +16,7 @@ These instructions apply throughout this repository. Read [README.md](README.md)
 - `connections` links are automatically bidirectional. Each building's `staircases` list connects every pair of listed floors in one graph edge, not just adjacent floors.
 - Breadth-first search minimizes graph edges, not distance or travel time. Validation checks mapped building/floor pairs, not whether an individual room exists. Do not present routes as step-free or fully verified.
 - Preserve special arrival/departure instructions for Guidance (`2201`), which is a half-level below the second floor, and the Main building's north/south stairwell guidance.
-- School connections are unverified, and the Office room number (`2204`) is provisional. Do not invent missing connections or promote provisional data to confirmed without evidence.
+- School connections are unverified, and the Office room number (`2202`) is provisional. Do not invent missing connections or promote provisional data to confirmed without evidence.
 
 ## Offline caching and releases
 
@@ -34,8 +34,8 @@ Run `node --test` for changes to application code, map data, caching, or deploym
 For UI or offline changes, also perform relevant browser checks; the simulated worker tests do not establish actual browser installation or offline behaviour:
 
 1. Serve the repository over HTTP using the command in the README. To check a repository subpath, serve its parent directory and visit `http://localhost:8000/nepean-navigator/`.
-2. Check routes `2205 → 3341`, `0201 → 0501`, `2205 → 2206`, `2205 → 2201`, and `2412 → 1203`, plus invalid input. Check a narrow mobile viewport and keyboard submission.
-3. For offline changes, inspect the manifest and service worker in browser DevTools. Wait for installation online, enable offline mode, reload, and navigate from `2205` to `3341`.
+2. Check routes `2205 → 3307`, `0201 → 1501`, `2205 → 2206`, `2205 → 2201`, and `2412 → 1203`, plus invalid input. Check a narrow mobile viewport and keyboard submission.
+3. For offline changes, inspect the manifest and service worker in browser DevTools. Wait for installation online, enable offline mode, reload, and navigate from `2205` to `3307`.
 4. For update behaviour, close all app tabs/windows and reopen online. If stale caches obscure local edits, unregister the worker and clear this site's cache. Installation UI varies by browser.
 
 Report which checks were actually performed and any checks that could not be completed. For documentation-only changes, check the diff, links, and consistency with the source; application tests are unnecessary.

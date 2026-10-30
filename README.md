@@ -63,15 +63,19 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | File | Purpose |
 | --- | --- |
 | [data.js](data.js) | School buildings, floor connections, stairs, and special destinations |
-| [route-map.js](route-map.js) and [floor-map.js](floor-map.js) | Composite floor drawings, estimated room positions, traced hallways, and map controls |
+| [floor-map.js](floor-map.js) | Floor geometry, hallway paths, staircase selection, and composite-map calculations |
+| [route-map.js](route-map.js) | SVG rendering and map zoom controls |
 | [routing.js](routing.js) | Room parsing, route finding, and written directions |
-| [app.js](app.js) | Form behaviour, results, installation help, and service-worker registration |
+| [app.js](app.js) | Room entry, results, room-number cards, and help dialogs |
+| [install.js](install.js) | App installation controls and service-worker registration |
 | [index.html](index.html) and [style.css](style.css) | Page content, structure, and appearance |
 | [manifest.webmanifest](manifest.webmanifest) and [icons/](icons/) | App installation details and icons |
 | [sw.js](sw.js) | Offline caching and app updates |
 | [tests/](tests/) | Automated routing and offline-cache checks |
 
-Named destinations can supply `arrivalStairs` or `departureStairs` objects with `kind: "stairwell"`, `direction`, and a short map `label` for stairs outside the graph, such as Guidance’s half-level. Their written `arrival`/`departure` instructions remain the full description.
+`navigate(start, end)` validates each endpoint once and returns `{start, end, path, steps}`. The UI and map use this same route object. `floor-map.js` has no browser dependencies: it traces the route and records selected stairwell movements. `route-map.js` draws that model without recomputing routing decisions.
+
+Named destinations can supply `arrivalStairs` or `departureStairs` objects with `kind: "stairwell"` and `direction` for stairs outside the graph, such as Guidance’s half-level. Their written `arrival`/`departure` instructions remain the full description.
 
 `school.entrances` maps door letters to `building`, `floor`, and hallway `side`, with an optional `staircase` label. `floor` is the hallway level reached after entering; optional `doorFloor` records a different physical door level. C and N are ground-level doors whose hallway stairs lead to floor 2, so routing starts at floor 2 and the instructions explain the approach. Stairwell sides come from the existing staircase metadata. Entrance positions guide the instructions; they do not add graph edges or exact hallway geometry.
 
@@ -81,7 +85,7 @@ For map edits, room numbers use **floor-building-room digits**, while connection
 
 The active floor-map display geometry lives in `floor-map.js`, using a 773 × 742 coordinate canvas aligned with `public/floor-0.svg` through `public/floor-3.svg`. Hallway centre lines, branch junctions, staircase landings, entrance points, building ports, and clipping bounds are explicit. Rectangle overlaps in the artwork do not create connections. Room interpolation follows path length, not a straight line through bends. The per-building room limit currently applies on every floor.
 
-Keep SVG canvas dimensions and alignment stable when refining the artwork. Register new geometry explicitly, and cache/stage any new deployed assets. The older `mapLayout` schematic in `data.js` and its helper functions remain as reference geometry; they do not drive the new floor drawings. Routing still comes only from `school.connections` and `school.staircases`.
+Keep SVG canvas dimensions and alignment stable when refining the artwork. Register new geometry explicitly, and cache/stage any new deployed assets. Routing still comes only from `school.connections` and `school.staircases`.
 
 A route may use any equally valid nearest stairwell when the written directions offer a choice; the display selects the closest allowed option along the traced hall from the estimated entry point. Special arrivals and departures remain in the written directions. The images are approximate, and the composite does not establish step-free access or verified individual room locations.
 

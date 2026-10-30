@@ -1,9 +1,8 @@
-// Browser interface: room entry, route rendering, number explanations, and app installation.
 import {school} from './data.js';
 import {renderRouteMap} from './route-map.js';
-import {navigate, roomLabel, constrainRoomInput, floorName, parseRoom, parseStart} from './routing.js';
+import {setupInstallation} from './install.js';
+import {navigate, constrainRoomInput, floorName} from './routing.js';
 
-// Shared elements used to switch between room entry, errors, and route results.
 const form = document.querySelector('#navigation');
 const error = document.querySelector('#error');
 const result = document.querySelector('#result');
@@ -35,30 +34,15 @@ function revealDirections() {
     cancelMapCollapse();
   };
 }
-// Let users interact with the overview or its native accordion without auto-closing it.
 routeMapPanel.addEventListener('pointerdown', cancelMapCollapse);
 routeMapPanel.addEventListener('keydown', cancelMapCollapse);
-// Render direction text and destination names as plain text rather than HTML.
-function renderList(list, texts) {
-  // Build fresh items so a new route cannot retain steps from the previous one.
-  list.replaceChildren(...texts.map(text => {
-    const item = document.createElement('li');
-    item.textContent = text;
-    return item;
-  }));
-}
-
-// Room-number explanation: cards, arrows, and collapse behavior.
 const numberExplanation = document.querySelector('#number-explanation');
-// Allow tapping the explanation body to collapse it without overriding the summary.
 numberExplanation.addEventListener('click', event => {
-  // The summary already toggles the details element through native behavior.
   if (!event.target.closest('summary')) numberExplanation.open = false;
 });
 const numberCards = document.querySelector('#number-cards');
 const exampleNumberCard = document.querySelector('#example-number-card');
 const numberCardTemplate = document.querySelector('#number-card-template');
-// Keep arrow origins aligned with the fixed-width digits at every card width.
 function alignNumberArrows() {
   for (const card of document.querySelectorAll('.number-card')) {
     const {width, left} = card.querySelector('.number-arrows').getBoundingClientRect();
@@ -79,10 +63,10 @@ const numberCardObserver = new ResizeObserver(alignNumberArrows);
 numberCardObserver.observe(numberCards);
 numberCardObserver.observe(exampleNumberCard);
 
-// Populate a room-number card, including any destination-specific floor exception.
 function explainRoomNumber(number, label) {
   const card = numberCardTemplate.content.firstElementChild.cloneNode(true);
-  card.querySelector('h3').textContent = `${label} · ${roomLabel(number)}`;
+  const name = school.knownRooms[number]?.name ?? `Room ${number}`;
+  card.querySelector('h3').textContent = `${label} · ${name}`;
   const groups = [
     floorName(Number(number[0])),
     school.buildings[Number(number[1])].name,
@@ -90,35 +74,30 @@ function explainRoomNumber(number, label) {
   ];
   card.querySelector('.number-row > .floor-group').textContent = number[0];
   card.querySelector('.number-row > .building-group').textContent = number[1];
-  // Fill the paired room digits separately while keeping their shared visual group.
   card.querySelectorAll('.number-row > .room-group span').forEach((digit, index) => { digit.textContent = number[index + 2]; });
-  // Match each digit group to its human-readable meaning.
   card.querySelectorAll('.number-group').forEach((group, index) => {
     group.querySelector('.number-value').textContent = groups[index];
   });
   const level = school.knownRooms[number]?.level;
   if (level) {
     const note = card.querySelector('.number-note');
-    note.textContent = `${roomLabel(number)} is on a ${level}.`;
+    note.textContent = `${name} is on a ${level}.`;
     note.hidden = false;
   }
   return card;
 }
 
-// Explain actual room numbers only; entrances have no room-number card.
-function renderNumberExplanation(start, end, visible) {
+function renderNumberExplanation({start, end, path}) {
   const cards = [];
-  if (!parseStart(start).entrance) cards.push(explainRoomNumber(start, 'Starting room'));
-  cards.push(explainRoomNumber(end, 'Destination'));
+  if (!start.entrance) cards.push(explainRoomNumber(start.number, 'Starting room'));
+  cards.push(explainRoomNumber(end.number, 'Destination'));
   numberCards.replaceChildren(...cards);
-  numberExplanation.hidden = !visible;
+  numberExplanation.hidden = !path;
   numberExplanation.open = false;
 }
 
-// Keep an example available from the menu without changing either route input.
-exampleNumberCard.replaceChildren(explainRoomNumber('3214', 'Example'));
+exampleNumberCard.replaceChildren(explainRoomNumber('3204', 'Example'));
 
-// Room entry and route display.
 const knownRooms = document.querySelector('#known-rooms');
 const startingRoomLabel = form.querySelector('label[for="start-room"]');
 let selectedEntrance = null;
@@ -184,30 +163,27 @@ for (const [number, room] of Object.entries(school.knownRooms)) {
   let pointerRoom = null;
   button.addEventListener('pointerdown', () => { pointerRoom = focusedRoomInput(); });
   button.addEventListener('pointercancel', () => { pointerRoom = null; });
-  // Keyboard activation uses current focus and the same empty-field fallback.
   button.addEventListener('click', event => {
     const input = (event.detail > 0 ? pointerRoom : null) ?? focusedRoomInput()
       ?? roomInputs.find(input => !input.disabled && !input.value) ?? form.elements.end;
     pointerRoom = null;
     input.value = number;
-    // After choosing a starting room, move on to entering the destination.
     form.elements.end.focus();
   });
   item.append(button);
   knownRooms.append(item);
 }
 
-// Present room identifiers and floor context once, above the movement instructions.
-function renderRouteSummary(start, end) {
-  for (const [prefix, number] of [['from', start], ['to', end]]) {
-    const room = prefix === 'from' ? parseStart(number) : parseRoom(number);
+function renderRouteSummary({start, end}) {
+  for (const [prefix, room] of [['from', start], ['to', end]]) {
+    const {number} = room;
     const name = school.knownRooms[number]?.name;
     document.querySelector(`#route-${prefix}-label`).textContent = room.entrance ? `Entrance ${room.entrance}` : name ? `${name} · ${number}` : `Room ${number}`;
     const level = school.knownRooms[number]?.level ?? floorName(room.doorFloor ?? room.floor);
     document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building].name} · ${level}`;
   }
 }
-for (const input of [form.elements.start, form.elements.end]) {
+for (const input of roomInputs) {
   // Remove invalid characters without moving the caret past the remaining digits.
   const constrain = () => {
     const value = input.value;
@@ -218,7 +194,6 @@ for (const input of [form.elements.start, form.elements.end]) {
       input.value = constrained;
       input.setSelectionRange(position, position);
     }
-    // A complete starting room is ready; continue with the destination.
     if (input === form.elements.start && input.value.length === 4) {
       form.elements.end.focus();
     }
@@ -228,7 +203,6 @@ for (const input of [form.elements.start, form.elements.end]) {
     if (!event.isComposing) constrain();
   });
   input.addEventListener('compositionend', constrain);
-  // Sanitize pasted text before applying the four-digit limit.
   input.addEventListener('paste', event => {
     if (!event.clipboardData) return;
     event.preventDefault();
@@ -237,7 +211,6 @@ for (const input of [form.elements.start, form.elements.end]) {
     constrain();
   });
 }
-// Start the next leg from the previous destination.
 changeRoute.addEventListener('click', () => {
   cancelMapCollapse();
   selectEntrance(null);
@@ -248,7 +221,6 @@ changeRoute.addEventListener('click', () => {
   document.body.classList.remove('showing-route');
   form.elements.end.focus();
 });
-// Compute directions and move focus to the result, or announce a validation error.
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   cancelMapCollapse();
@@ -257,18 +229,20 @@ form.addEventListener('submit', (event) => {
   steps.replaceChildren();
   try {
     // Normalize only on submission so typing a fourth digit remains natural.
-    const start = selectedEntrance ?? parseRoom(form.elements.start.value).number;
-    const end = parseRoom(form.elements.end.value).number;
-    const route = navigate(start, end);
-    if (!selectedEntrance) form.elements.start.value = start;
-    form.elements.end.value = end;
-    renderNumberExplanation(start, end, Boolean(route.path));
-    renderList(steps, route.path ? route.steps.slice(1) : route.steps);
-    renderRouteSummary(start, end);
+    const route = navigate(selectedEntrance ?? form.elements.start.value, form.elements.end.value);
+    if (!selectedEntrance) form.elements.start.value = route.start.number;
+    form.elements.end.value = route.end.number;
+    renderNumberExplanation(route);
+    steps.replaceChildren(...(route.path ? route.steps.slice(1) : route.steps).map(text => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      return item;
+    }));
+    renderRouteSummary(route);
     summary.hidden = !route.path;
-    renderRouteMap(document.querySelector('#route-map'), route.path, start, end);
-    document.querySelector('#route-map-panel').hidden = !route.path;
-    document.querySelector('#route-map-panel').open = Boolean(route.path);
+    renderRouteMap(document.querySelector('#route-map'), route);
+    routeMapPanel.hidden = !route.path;
+    routeMapPanel.open = Boolean(route.path);
     title.textContent = route.path ? 'Your route' : 'No route found';
     result.hidden = false;
     // Keep room inputs available when the map cannot connect the rooms.
@@ -283,7 +257,6 @@ form.addEventListener('submit', (event) => {
   }
 });
 
-// Keep supplementary information in dialogs and return focus to the hamburger after closing.
 const appMenu = document.querySelector('#app-menu');
 const menuToggle = appMenu.querySelector('summary');
 for (const [trigger, dialog] of [
@@ -292,7 +265,6 @@ for (const [trigger, dialog] of [
   ['#open-share', '#share-dialog'],
   ['#open-about', '#about-dialog'],
 ]) {
-  // Close the dropdown before opening a dialog so its return target stays visible.
   document.querySelector(trigger).addEventListener('click', () => {
     appMenu.open = false;
     menuToggle.focus();
@@ -310,11 +282,9 @@ document.querySelector('#copy-share-link').addEventListener('click', async () =>
     shareStatus.textContent = 'Could not copy the link. Touch and hold or right-click the link above to copy it.';
   }
 });
-// Dismiss the dropdown when a pointer interaction moves back into the app.
 document.addEventListener('click', event => {
   if (!appMenu.contains(event.target)) appMenu.open = false;
 });
-// Return keyboard users to the toggle when they dismiss the dropdown with Escape.
 appMenu.addEventListener('keydown', event => {
   if (event.key === 'Escape' && appMenu.open) {
     event.preventDefault();
@@ -322,86 +292,8 @@ appMenu.addEventListener('keydown', event => {
     menuToggle.focus();
   }
 });
-// Avoid leaving the dropdown over the form when keyboard focus moves elsewhere.
 appMenu.addEventListener('focusout', event => {
   if (event.relatedTarget && !appMenu.contains(event.relatedTarget)) appMenu.open = false;
 });
 
-// Register offline support after page load without blocking normal navigation.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      await navigator.serviceWorker.register(new URL('./sw.js', import.meta.url));
-    } catch (exception) {
-      console.warn('Offline access unavailable.', exception);
-    }
-  });
-}
-
-// Offer a native install prompt when available, with manual instructions as fallback.
-const installControl = document.querySelector('#install-control');
-const installButton = document.querySelector('#install-app');
-const menuInstallButton = document.querySelector('#menu-install-app');
-const installButtons = [installButton, menuInstallButton];
-const installHelp = document.querySelector('#install-help');
-const standalone = window.matchMedia('(display-mode: standalone)');
-let installPrompt = null;
-let installed = false;
-// Hide installation controls when the app is already installed or running standalone.
-function refreshInstallControl() {
-  const hide = installed || standalone.matches || navigator.standalone === true;
-  installControl.hidden = hide;
-  menuInstallButton.hidden = hide;
-}
-refreshInstallControl();
-standalone.addEventListener('change', refreshInstallControl);
-// Save the browser's install offer until the user chooses to install.
-window.addEventListener('beforeinstallprompt', (event) => {
-  event.preventDefault();
-  installPrompt = event;
-  refreshInstallControl();
-});
-// Discard the used prompt and reflect installation completed outside this button.
-window.addEventListener('appinstalled', () => {
-  installed = true;
-  installPrompt = null;
-  refreshInstallControl();
-});
-// Keep both triggers in sync and bring the footer instructions into view from the menu.
-function showInstallHelp(visible, fromMenu) {
-  installHelp.hidden = !visible;
-  for (const button of installButtons) button.setAttribute('aria-expanded', String(visible));
-  if (visible && fromMenu) {
-    installHelp.focus({preventScroll: true});
-    installHelp.scrollIntoView({block: 'start', behavior: 'instant'});
-  }
-}
-
-// Share the one-use native prompt and manual instructions between both installation buttons.
-async function requestInstall(event) {
-  const fromMenu = event.currentTarget === menuInstallButton;
-  if (fromMenu) {
-    appMenu.open = false;
-    menuToggle.focus();
-  }
-  if (installPrompt) {
-    const prompt = installPrompt;
-    installPrompt = null;
-    for (const button of installButtons) button.disabled = true;
-    try {
-      await prompt.prompt();
-      const choice = await prompt.userChoice;
-      if (choice.outcome === 'accepted') {
-        installed = true;
-        refreshInstallControl();
-      }
-    } catch {
-      showInstallHelp(true, fromMenu);
-    } finally {
-      for (const button of installButtons) button.disabled = false;
-    }
-  } else {
-    showInstallHelp(fromMenu || installHelp.hidden, fromMenu);
-  }
-}
-for (const button of installButtons) button.addEventListener('click', requestInstall);
+setupInstallation(appMenu);

@@ -1,35 +1,98 @@
 // Display geometry traced from the supplied SVGs in their 773 × 742 reference canvas.
 // These paths never add school connections or change routing decisions.
 import {school} from './data.js';
-import {parseStart, parseRoom, floorName, staircaseChoices, mainStairwellVisit} from './routing.js';
+import {floorName, staircaseChoices, mainStairwellVisit} from './routing.js';
 
-const bounds = {1: [25, 335, 168, 379], 2: [192, 465, 370, 230], 3: [549, 332, 188, 380], 4: [499, 27, 141, 310], 5: [248, 136, 200, 330]};
+export const bounds = {
+  1: [25, 335, 168, 379],
+  2: [192, 465, 370, 230],
+  3: [549, 332, 188, 380],
+  4: [499, 27, 141, 310],
+  5: [248, 136, 200, 330],
+};
 const musicClip = '550,332 707,332 707,407 735,407 735,710 615,710 615,620 561,620 561,408 550,408';
 const mainHall = [[212, 550], [277, 550], [381, 550], [474, 550], [554, 550]];
 const scienceHall = [[569, 300], [569, 30]];
 const mainBranches = [[[277, 550], [277, 570]], [[474, 550], [474, 570]]];
-const main = floor => ({signature: 'main-upper', primary: mainHall,
+const main = floor => ({
+  signature: 'main-upper',
+  primary: mainHall,
   paths: [mainHall, ...mainBranches, ...(floor === 1 ? [[[381, 550], [381, 465]]] : []),
     ...(floor === 2 ? [[[277, 570], [277, 675]], [[474, 570], [474, 675]]] : [])],
-  stairs: {A: [474, 570], B: [277, 570]}, ports: {1: [212, 550], 3: [554, 550], ...(floor === 1 ? {5: [381, 465]} : {})}});
+  stairs: {A: [474, 570], B: [277, 570]},
+  ports: {1: [212, 550], 3: [554, 550], ...(floor === 1 ? {5: [381, 465]} : {})},
+});
 
 export const floorPlans = {
-  '1-1': {signature: 'art-ground', primary: [[181, 627], [181, 520]], paths: [[[181, 640], [181, 627], [181, 550], [181, 520]]], stairs: {E: [181, 550], hallway: [181, 520]}, ports: {2: [181, 550]}},
-  '1-2': {signature: 'art-upper', primary: [[28, 399], [181, 399]], paths: [[[28, 399], [181, 399], [181, 505], [181, 550], [181, 627], [181, 640]]], stairs: {E: [181, 505], hallway: [181, 520]}, ports: {2: [181, 550]}},
-  '1-3': {signature: 'english', primary: [[28, 550], [181, 550]], paths: [[[28, 550], [181, 550], [192, 550]]], stairs: {E: [181, 550]}, ports: {2: [192, 550]}},
+  '1-1': {
+    signature: 'art-ground',
+    primary: [[181, 627], [181, 520]],
+    paths: [[[181, 640], [181, 627], [181, 550], [181, 520]]],
+    stairs: {E: [181, 550], hallway: [181, 520]},
+    ports: {2: [181, 550]},
+  },
+  '1-2': {
+    signature: 'art-upper',
+    primary: [[28, 399], [181, 399]],
+    paths: [[[28, 399], [181, 399], [181, 505], [181, 550], [181, 627], [181, 640]]],
+    stairs: {E: [181, 505], hallway: [181, 520]},
+    ports: {2: [181, 550]},
+  },
+  '1-3': {
+    signature: 'english',
+    primary: [[28, 550], [181, 550]],
+    paths: [[[28, 550], [181, 550], [192, 550]]],
+    stairs: {E: [181, 550]},
+    ports: {2: [192, 550]},
+  },
   // The basement outline exists, but no Main hallway was drawn. Do not invent one.
-  '2-0': {signature: 'main-basement', primary: null, paths: [], stairs: {}, ports: {}},
+  '2-0': {
+    signature: 'main-basement',
+    primary: null,
+    paths: [],
+    stairs: {},
+    ports: {},
+  },
   '2-1': main(1), '2-2': main(2), '2-3': main(3),
-  '3-0': {signature: 'music-basement', primary: [[647, 560], [647, 408]], paths: [[[647, 560], [647, 408]]], stairs: {}, ports: {}},
-  '3-1': {signature: 'auditorium', primary: [[569, 504], [569, 340]], paths: [[[569, 630], [569, 550], [569, 504], [569, 340]]], stairs: {hallway: [569, 480]}, ports: {2: [569, 550], 4: [569, 340]}},
-  '3-2': {signature: 'music-upper', primary: [[572, 617], [572, 408], [569, 408], [569, 340]], paths: [[[572, 630], [572, 617], [572, 480], [572, 408], [569, 408], [569, 340]]], stairs: {hallway: [572, 480]}, ports: {2: [572, 550], 4: [569, 340]}},
-  '3-3': {signature: 'auditorium-top', primary: [[561, 550], [647, 550], [647, 370], [704, 370]], paths: [[[561, 550], [647, 550], [647, 370], [704, 370]]], stairs: {}, ports: {2: [561, 550]}},
-  ...Object.fromEntries([0, 1, 2].map(floor => [`4-${floor}`, {signature: 'science', primary: scienceHall,
-    paths: [scienceHall, [[548, 300], [569, 300]]], stairs: {J: [548, 300]}, ports: {3: [569, 300]}}])),
-  '5-1': {signature: 'gym', primary: null, paths: [[[381, 465], [381, 325]]], stairs: {}, ports: {2: [381, 465]}, approach: [381, 325]},
+  '3-1': {
+    signature: 'auditorium',
+    primary: [[569, 504], [569, 340]],
+    paths: [[[569, 630], [569, 550], [569, 504], [569, 340]]],
+    stairs: {hallway: [569, 480]},
+    ports: {2: [569, 550], 4: [569, 340]},
+  },
+  '3-2': {
+    signature: 'music-upper',
+    primary: [[572, 617], [572, 408], [569, 408], [569, 340]],
+    paths: [[[572, 630], [572, 617], [572, 480], [572, 408], [569, 408], [569, 340]]],
+    stairs: {hallway: [572, 480]},
+    ports: {2: [572, 550], 4: [569, 340]},
+  },
+  '3-3': {
+    signature: 'auditorium-top',
+    primary: [[561, 550], [647, 550], [647, 370], [704, 370]],
+    paths: [[[561, 550], [647, 550], [647, 370], [704, 370]]],
+    stairs: {},
+    ports: {2: [561, 550]},
+  },
+  ...Object.fromEntries([0, 1, 2].map(floor => [`4-${floor}`, {
+    signature: 'science',
+    primary: scienceHall,
+    paths: [scienceHall, [[548, 300], [569, 300]]],
+    stairs: {J: [548, 300]},
+    ports: {3: [569, 300]},
+  }])),
+  '5-1': {
+    signature: 'gym',
+    primary: null,
+    paths: [[[381, 465], [381, 325]]],
+    stairs: {},
+    ports: {2: [381, 465]},
+    approach: [381, 325],
+  },
 };
 const entrancePoints = {A: [474, 675], B: [277, 675], C: [181, 640], N: [572, 630]};
-const roomApproaches = {'2201': [277, 570], '1305': [569, 504], '1509': [381, 325]};
+export const roomApproaches = {'2201': [277, 570], '1305': [569, 504], '1509': [381, 325]};
 
 export function pointAlong(points, fraction) {
   const lengths = points.slice(1).map((point, i) => Math.hypot(point[0] - points[i][0], point[1] - points[i][1]));
@@ -43,8 +106,7 @@ export function pointAlong(points, fraction) {
   }
   return [...points.at(-1)];
 }
-export function roomMapPoint(value) {
-  const room = parseStart(value);
+export function roomMapPoint(room) {
   if (room.entrance) return entrancePoints[room.entrance];
   if (roomApproaches[room.number]) return roomApproaches[room.number];
   const plan = floorPlans[room.node];
@@ -73,7 +135,10 @@ export function hallwayPath(plan, from, to) {
   if (!segments.some(([a, b]) => onSegment(from, a, b)) || !segments.some(([a, b]) => onSegment(to, a, b))) return null;
   const distances = new Map([[start, 0]]), parents = new Map(), pending = new Set(graph.keys());
   while (pending.size) {
-    const node = [...pending].sort((a, b) => (distances.get(a) ?? Infinity) - (distances.get(b) ?? Infinity))[0];
+    let node;
+    for (const candidate of pending) {
+      if (node === undefined || (distances.get(candidate) ?? Infinity) < (distances.get(node) ?? Infinity)) node = candidate;
+    }
     if (!distances.has(node)) break;
     pending.delete(node);
     if (node === end) {
@@ -94,21 +159,31 @@ function stairsForEdge(path, index, start, end) {
   const nextFloor = Number(path[index + 1].split('-')[1]);
   const side = building === 2 ? mainStairwellVisit(path, index, start, end).side : undefined;
   const choices = staircaseChoices(building, floor, nextFloor, side);
+  if (choices.length === 1) return choices[0][0];
   // Choose the closest allowed staircase along the traced hall, using the entry point.
   const plan = floorPlans[path[index]];
   let entry = index;
   while (entry > 0 && path[entry - 1].split('-')[0] === String(building)) entry--;
-  const origin = entry === 0 ? roomMapPoint(start.entrance ?? start.number)
+  const origin = entry === 0 ? roomMapPoint(start)
     : plan?.ports[Number(path[entry - 1].split('-')[0])];
-  const length = label => {
+  let selected, shortest = Infinity;
+  for (const [label] of choices) {
     const points = hallwayPath(plan, origin, plan?.stairs[label]);
-    return points ? points.slice(1).reduce((sum, point, i) => sum + Math.hypot(point[0] - points[i][0], point[1] - points[i][1]), 0) : Infinity;
-  };
-  return choices.map(([label]) => label).sort((a, b) => length(a) - length(b))[0];
+    const length = points ? points.slice(1).reduce((sum, point, i) =>
+      sum + Math.hypot(point[0] - points[i][0], point[1] - points[i][1]), 0) : Infinity;
+    if (selected === undefined || length < shortest) {
+      selected = label;
+      shortest = length;
+    }
+  }
+  return selected;
 }
-const shifted = (point, offset = [0, 0]) => point && point.map((value, axis) => value + offset[axis]);
+export const shifted = (point, offset = [0, 0]) => point && point.map((value, axis) => value + offset[axis]);
 const difference = (a, b) => a.map((value, axis) => value - b[axis]);
-const unit = vector => {const length = Math.hypot(...vector); return length ? vector.map(value => value / length) : null;};
+const unit = vector => {
+  const length = Math.hypot(...vector);
+  return length ? vector.map(value => value / length) : null;
+};
 // Partition adjacent floor drawings at their shared landing, preserving route geometry.
 function splitFloorSections(previous, section, before, after) {
   if (!previous.to || !section.from) return false;
@@ -155,7 +230,7 @@ export function clipFloorPolygon(polygon, cut) {
   }
   return result;
 }
-function sectionPolygon(section) {
+export function sectionPolygon(section) {
   const [x, y, width, height] = bounds[section.building];
   let polygon = section.building === 3 ? musicClip.split(' ').map(point => point.split(',').map(Number))
     : [[x, y], [x + width, y], [x + width, y + height], [x, y + height]];
@@ -164,44 +239,65 @@ function sectionPolygon(section) {
   return polygon.map(point => difference(point, section.offset ?? [0, 0]));
 }
 
-export function buildCompositeMap(path, startValue, endValue) {
+const contains = (candidate, lines) => lines.every(line => line && line.every(point =>
+  candidate.paths.some(points => points.slice(1).some((end, j) => onSegment(point, points[j], end)))));
+
+export function buildCompositeMap({path, start, end}) {
   if (!path?.length) return {sheets: [], sections: []};
-  const start = parseStart(startValue), end = parseRoom(endValue);
+  const nodes = path.map(node => node.split('-').map(Number));
+  const edgeStairs = nodes.map(([building], i) => nodes[i + 1]?.[0] === building
+    ? stairsForEdge(path, i, start, end) : undefined);
   const sections = [];
   for (let i = 0; i < path.length; i++) {
-    const [building, floor] = path[i].split('-').map(Number);
+    const [building, floor] = nodes[i];
     const plan = floorPlans[path[i]];
-    const previous = path[i - 1]?.split('-').map(Number), next = path[i + 1]?.split('-').map(Number);
-    let from = i === 0 ? roomMapPoint(startValue) : previous[0] !== building
-      ? plan?.ports[previous[0]] : plan?.stairs[stairsForEdge(path, i - 1, start, end)];
-    let to = i === path.length - 1 ? roomMapPoint(endValue) : next[0] !== building
-      ? plan?.ports[next[0]] : plan?.stairs[stairsForEdge(path, i, start, end)];
+    const previous = nodes[i - 1], next = nodes[i + 1];
+    const from = i === 0 ? roomMapPoint(start) : previous[0] !== building
+      ? plan?.ports[previous[0]] : plan?.stairs[edgeStairs[i - 1]];
+    const to = i === path.length - 1 ? roomMapPoint(end) : next[0] !== building
+      ? plan?.ports[next[0]] : plan?.stairs[edgeStairs[i]];
     const points = hallwayPath(plan, from, to);
-    const stairs = new Set();
-    if (previous?.[0] === building) stairs.add(stairsForEdge(path, i - 1, start, end));
-    if (next?.[0] === building) stairs.add(stairsForEdge(path, i, start, end));
+    const stairs = new Set(), movements = [];
+    for (const [label, fromFloor, toFloor] of [
+      [edgeStairs[i - 1], previous?.[1], floor], [edgeStairs[i], floor, next?.[1]],
+    ]) {
+      if (label === undefined) continue;
+      stairs.add(label);
+      if (school.staircases[building][label].kind !== 'hallway') {
+        const direction = toFloor > fromFloor ? 'up' : 'down';
+        movements.push({staircase: label, direction,
+          description: `${school.buildings[building].name}: staircase ${label}, ${direction} from the ${floorName(fromFloor)} to the ${floorName(toFloor)}.`});
+      }
+    }
     for (const [number, kind] of [[i === 0 ? start.number : null, 'departure'], [i === path.length - 1 ? end.number : null, 'arrival']]) {
       const room = school.knownRooms[number];
       if (room?.[`${kind}Stairs`]?.kind === 'stairwell' && start.number !== end.number) {
         for (const [label, staircase] of Object.entries(school.staircases[building] ?? {})) {
-          if (staircase.side === room.stairwellSide) stairs.add(label);
+          if (staircase.kind !== 'hallway' && staircase.side === room.stairwellSide) {
+            stairs.add(label);
+            movements.push({staircase: label, direction: room[`${kind}Stairs`].direction, description: room[kind]});
+          }
         }
       }
     }
     const last = sections.at(-1);
-    // Prefer the departure-floor drawing when it contains every traced segment.
-    const contains = (candidate, lines) => lines.every(line => line && line.every(point =>
-      candidate.paths.some(points => points.slice(1).some((end, j) => onSegment(point, points[j], end)))));
+    // Merge compatible floors only when the selected drawing contains the entire route.
     const matching = last?.building === building && last.signature === plan?.signature;
     const selected = matching && (contains(plan, [...last.lines, points]) ? plan
       : contains(last.plan, [points]) ? last.plan : null);
     if (selected) {
       if (selected === plan) last.floor = floor;
       last.plan = selected;
-      last.nodes.push(path[i]); last.floors.push(floor); last.lines.push(points); last.to = to;
+      last.nodes.push(path[i]);
+      last.floors.push(floor);
+      last.lines.push(points);
+      last.to = to;
       for (const label of stairs) last.stairs.add(label);
+      for (const move of movements) {
+        if (!last.movements.some(other => other.staircase === move.staircase && other.direction === move.direction)) last.movements.push(move);
+      }
     } else sections.push({building, floor, floors: [floor], nodes: [path[i]], plan,
-      signature: plan?.signature, lines: [points], from, to, stairs});
+      signature: plan?.signature, lines: [points], from, to, stairs, movements});
   }
   const sheets = [];
   for (let i = 0; i < sections.length; i++) {
@@ -219,112 +315,3 @@ export function buildCompositeMap(path, startValue, endValue) {
   return {sheets, sections};
 }
 
-const NS = 'http://www.w3.org/2000/svg';
-const element = (name, attrs = {}, text = '') => {
-  const node = document.createElementNS(NS, name);
-  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-  if (text) node.textContent = text;
-  return node;
-};
-const polyline = points => points.map(point => point.join(',')).join(' ');
-
-export function renderFloorComposite(path, startValue, endValue, stairCues) {
-  const model = buildCompositeMap(path, startValue, endValue);
-  const container = document.createElement('div'); container.className = 'floor-composite';
-  let sequence = 0;
-  model.sheets.forEach((sheet, sheetIndex) => {
-    if (sheetIndex) {
-      const separator = document.createElement('p'); separator.className = 'floor-map-continuation';
-      separator.textContent = '⌁ Continue on the next plan'; container.append(separator);
-    }
-    // Keep unused buildings in their ground-floor layout as context, without adding route stages.
-    const context = Object.keys(bounds).map(Number)
-      .filter(building => !sheet.sections.some(section => section.building === building))
-      .map(building => ({building, floor: 1, offset: [0, 0]}));
-    const layers = [...context, ...sheet.sections];
-    const boxes = [[0, 0, 773, 742], ...layers.map(section => {
-      const box = bounds[section.building];
-      return [...shifted(box.slice(0, 2), section.offset), ...box.slice(2)];
-    })];
-    const x = Math.min(...boxes.map(box => box[0])) - 12, y = Math.min(...boxes.map(box => box[1])) - 24;
-    const width = Math.max(...boxes.map(box => box[0] + box[2])) - x + 12;
-    const height = Math.max(...boxes.map(box => box[1] + box[3])) - y + 12;
-    const svg = element('svg', {viewBox: `${x} ${y} ${width} ${height}`, role: 'img', class: 'floor-route-map', 'aria-labelledby': `floor-map-title-${sheetIndex} floor-map-desc-${sheetIndex}`});
-    svg.append(element('title', {id: `floor-map-title-${sheetIndex}`}, 'Route across floor plans'));
-    svg.append(element('desc', {id: `floor-map-desc-${sheetIndex}`}, sheet.sections.map(section =>
-      `${school.buildings[section.building].name}: ${section.floors.map(floorName).join(' to ')}. Room positions are estimates; named destinations show their approach.`).join(' ')));
-    const defs = element('defs');
-    const arrowId = `floor-route-arrow-${sheetIndex}`;
-    const arrow = element('marker', {id: arrowId, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 3, markerHeight: 3, orient: 'auto'});
-    arrow.append(element('path', {d: 'M0 0L10 5L0 10Z', fill: '#a50086'})); defs.append(arrow); svg.append(defs);
-    for (const section of layers) {
-      const clipId = `floor-section-${sequence++}`;
-      const clip = element('clipPath', {id: clipId});
-      clip.append(element('polygon', {points: polyline(sectionPolygon(section))})); defs.append(clip);
-      const offset = section.offset ?? [0, 0];
-      const layer = element('g', {transform: `translate(${offset.join(' ')})`, class: 'floor-plan-layer', 'data-building': section.building, 'data-floor': section.floor});
-      layer.append(element('image', {href: `./public/floor-${section.floor}.svg`, x: 0, y: 0, width: 773, height: 742, preserveAspectRatio: 'none', 'clip-path': `url(#${clipId})`}));
-      svg.append(layer);
-    }
-    for (const section of sheet.sections) if (section.split?.staircase) {
-        // Show the image seam near the landing, angled across the hall rather than along it.
-        const {point, normal} = section.split;
-        const angle = Math.atan2(normal[1], normal[0]) * 180 / Math.PI;
-        const seam = element('g', {transform: `translate(${point.join(' ')}) rotate(${angle})`});
-        seam.append(element('path', {d: 'M-3 -18L1 -9L-3 0L1 9L-3 18', class: 'floor-stair-split'}));
-        seam.append(element('title', {}, `Floor ${section.split.fromFloor} to floor ${section.split.toFloor} at the stairwell.`));
-        svg.append(seam);
-      }
-    const shownStairs = new Set();
-    const stairMarkers = [];
-    for (let i = 0; i < sheet.sections.length; i++) {
-      const section = sheet.sections[i];
-      for (const points of section.lines) if (points?.length > 1) {
-        const line = element('polyline', {points: polyline(points.map(point => shifted(point, section.offset))), class: 'floor-route-line', 'marker-end': `url(#${arrowId})`}); svg.append(line);
-      }
-      const next = sheet.sections[i + 1];
-      if (next && section.to && next.from) {
-        const a = shifted(section.to, section.offset), b = shifted(next.from, next.offset);
-        svg.append(element('polyline', {points: polyline([a, [b[0], a[1]], b]), class: 'floor-route-line'}));
-      }
-      for (const cue of stairCues.filter(cue => cue.building === section.building && section.stairs.has(cue.staircase))) {
-        const point = section.plan?.stairs[cue.staircase];
-        if (point) {
-          const location = shifted(point, section.offset);
-          const key = `${cue.building}-${location.join(',')}-${cue.direction}`;
-          if (!shownStairs.has(key)) {
-            const marker = element('g', {transform: `translate(${location.join(' ')})`, class: 'floor-stair-cue'});
-            marker.append(element('title', {}, cue.description));
-            marker.append(element('circle', {cx: 0, cy: 0, r: 18, class: 'floor-stair-circle'}));
-            marker.append(element('text', {x: 0, y: -25, 'text-anchor': 'middle', class: 'floor-stair-label'}, cue.direction === 'up' ? 'Up' : 'Down'));
-            stairMarkers.push(marker);
-          }
-          shownStairs.add(key);
-        }
-      }
-    }
-    // Keep the highlighted stairwells and their labels above every route segment.
-    svg.append(...stairMarkers);
-    for (const [section, point, value, label] of [
-      [model.sections[0], model.sections[0]?.from, startValue, 'Start'],
-      [model.sections.at(-1), model.sections.at(-1)?.to, endValue, 'Destination'],
-    ]) if (sheet.sections.includes(section) && point) {
-      const location = shifted(point, section.offset);
-      svg.append(element('circle', {cx: location[0], cy: location[1], r: 5, class: 'floor-route-endpoint'}));
-      const approach = roomApproaches[String(value)] ? ' approach' : '';
-      const text = `${label}: ${school.entrances[String(value)] ? `Entrance ${value}` : value}${approach}`;
-      const alignLeft = location[0] + 8 + text.length * 6 > x + width - 5;
-      const labelY = label === 'Start'
-        ? location[1] + (location[1] - y < 40 ? 18 : -12)
-        : location[1] + (location[1] + 20 < y + height - 5 ? 20 : -12);
-      svg.append(element('text', {x: location[0] + (alignLeft ? -8 : 8), y: labelY, 'text-anchor': alignLeft ? 'end' : 'start', class: 'floor-endpoint-label'}, text));
-    }
-    container.append(svg);
-    for (const section of sheet.sections.filter(section => section.lines.some(line => !line))) {
-      const note = document.createElement('p'); note.className = 'floor-map-gap';
-      note.textContent = `${school.buildings[section.building].name}, floor ${section.floor}: hallway detail is not available for this segment. Follow the written directions.`;
-      container.append(note);
-    }
-  });
-  return container;
-}

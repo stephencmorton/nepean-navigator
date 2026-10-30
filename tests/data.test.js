@@ -1,4 +1,3 @@
-// Building descriptions bound mapped connections, staircases, and named destinations.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {school} from '../data.js';
