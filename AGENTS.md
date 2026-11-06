@@ -1,6 +1,6 @@
 # Instructions for coding agents
 
-These instructions apply throughout this repository. Read [README.md](README.md) for the project overview, local setup, and contributor guidance.
+These instructions apply throughout this repository. Read [README.md](README.md) for the project overview and [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, the data schema, and contributor guidance.
 
 ## Architecture and constraints
 
@@ -33,7 +33,7 @@ Run `node --test` for changes to application code, map data, caching, or deploym
 
 For UI or offline changes, also perform relevant browser checks; the simulated worker tests do not establish actual browser installation or offline behaviour:
 
-1. Serve the repository over HTTP using the command in the README. To check a repository subpath, serve its parent directory and visit `http://localhost:8000/nepean-navigator/`.
+1. Serve the repository over HTTP using the command in CONTRIBUTING.md. To check a repository subpath, serve its parent directory and visit `http://localhost:8000/nepean-navigator/`.
 2. Check routes `2205 → 3307`, `0201 → 1501`, `2205 → 2206`, `2205 → 2201`, and `2412 → 1203`, plus invalid input. Check a narrow mobile viewport and keyboard submission.
 3. For offline changes, inspect the manifest and service worker in browser DevTools. Wait for installation online, enable offline mode, reload, and navigate from `2205` to `3307`.
 4. For update behaviour, close all app tabs/windows and reopen online. If stale caches obscure local edits, unregister the worker and clear this site's cache. Installation UI varies by browser.

@@ -2,22 +2,39 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {school} from '../data.js';
+import {entrances, rooms} from '../map-geometry.js';
 import {graph, findPath, navigate, parseStart, parseRoom} from '../routing.js';
 import {floorPlans, clipFloorPolygon, pointAlong, roomMapPoint, hallwayPath, buildCompositeMap, sheetRoutePoints, routeViewBox, sheetMapViewBox, scaleViewBox} from '../floor-map.js';
 
+// True when a point lies on one of a plan's generated centerline segments.
+const onTrace = (plan, point) => plan.paths.some(points => points.slice(1).some((end, i) => {
+  const start = points[i];
+  const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
+  return Math.abs(Math.hypot(point[0] - start[0], point[1] - start[1]) + Math.hypot(point[0] - end[0], point[1] - end[1]) - length) < .001;
+}));
+
 test('room interpolation follows low-to-high numbering along hallway length and bends', () => {
-  assert.deepEqual(roomMapPoint(parseStart('1201')), [220, 550]);
-  assert.deepEqual(roomMapPoint(parseStart('1212')), [543, 550]);
-  assert.deepEqual(roomMapPoint(parseStart('0401')), [568, 300]);
-  assert.deepEqual(roomMapPoint(parseStart('0412')), [568, 38]);
+  assert.deepEqual(roomMapPoint(parseStart('1201')), floorPlans['2-1'].primary[0]);
+  assert.deepEqual(roomMapPoint(parseStart('1212')), floorPlans['2-1'].primary.at(-1));
+  assert.deepEqual(roomMapPoint(parseStart('0401')), floorPlans['4-0'].primary[0]);
+  assert.deepEqual(roomMapPoint(parseStart('0412')), floorPlans['4-0'].primary.at(-1));
   assert.deepEqual(pointAlong([[0, 10], [0, 0], [20, 0]], .5), [5, 0]);
-  assert.deepEqual(roomMapPoint(parseStart('N')), [572, 630]);
-  assert.deepEqual(roomMapPoint(parseStart('2201')), [277, 570]);
-  assert.deepEqual(roomMapPoint(parseStart('1305')), [569, 504]);
+  for (const node of ['2-1', '4-0']) {
+    const plan = floorPlans[node];
+    assert.ok(plan.primary.every(point => onTrace(plan, point)), `${node} room line snaps onto the traced hall`);
+  }
+  // Main runs south to north (left to right); Math/Science runs east to west (bottom to top).
+  assert.ok(roomMapPoint(parseStart('1201'))[0] < roomMapPoint(parseStart('1206'))[0]);
+  assert.ok(roomMapPoint(parseStart('0401'))[1] > roomMapPoint(parseStart('0406'))[1]);
+  assert.deepEqual(roomMapPoint(parseStart('N')), entrances.N['2']);
+  for (const number of Object.keys(rooms)) assert.deepEqual(roomMapPoint(parseStart(number)), rooms[number]);
 });
 test('local paths turn only along traced hallways and never bridge missing geometry', () => {
-  const path = hallwayPath(floorPlans['3-3'], [561, 550], [704, 370]);
-  assert.deepEqual(path, [[561, 550], [561, 549], [646, 549], [647, 370], [693, 369], [704, 370]]);
+  const from = [561, 550], to = [704, 370];
+  const path = hallwayPath(floorPlans['3-3'], from, to);
+  assert.deepEqual([path[0], path.at(-1)], [from, to]);
+  assert.ok(path.slice(1, -1).every(point => onTrace(floorPlans['3-3'], point)));
+  assert.ok(path.length > 4, 'The Auditorium top-floor route follows its bends');
   assert.equal(hallwayPath(floorPlans['2-0'], [277, 570], [474, 570]), null);
   assert.deepEqual(hallwayPath(floorPlans['2-2'], [300, 500], [400, 550]), [[300, 500], [300, 550], [400, 550]]);
   const disconnected = {paths: [[[0, 0], [0, 5]], [[10, 0], [10, 5]]]};
@@ -26,7 +43,9 @@ test('local paths turn only along traced hallways and never bridge missing geome
 test('composites use appropriate drawings without user floor controls', () => {
   const route = navigate('2205', '3307');
   const map = buildCompositeMap(route);
-  assert.equal(map.sheets.length, 2);
+  assert.equal(map.sheets.length, 1);
+  assert.equal(buildCompositeMap(navigate('2105', '1509')).sheets.length, 1);
+  assert.equal(buildCompositeMap(navigate('1509', '2105')).sheets.length, 1);
   assert.deepEqual(map.sections.map(section => [section.building, section.floor]), [[2, 2], [2, 3], [3, 3]]);
   assert.deepEqual(map.sections[0].floors, [2]);
   assert.deepEqual(map.sections[0].stairs, new Set(['A']));
@@ -41,7 +60,7 @@ test('phone view boxes contain every route and can un-pinch to every whole map',
   let combinations = 0;
   for (const start of sources) for (const end of buildingRooms) {
     combinations++;
-    const label = `${start} → ${end}`;
+    const label = `${start} -> ${end}`;
     const route = navigate(start, end);
     assert.ok(route.path, `${label}: route is connected`);
     assert.equal(route.path[0], parseStart(start).node, `${label}: route starts at its source`);
@@ -113,13 +132,13 @@ test('every mapped pair retains its graph path and all drawn hallway geometry is
       assert.ok(floorPlans[`${section.building}-${section.floor}`]);
       for (const cut of section.cuts ?? []) {
         for (const point of section.lines.filter(Boolean).flat()) {
-          const distance = point.reduce((sum, value, axis) => sum + (value + section.offset[axis] - cut.point[axis]) * cut.normal[axis], 0);
+          const distance = point.reduce((sum, value, axis) => sum + (value - cut.point[axis]) * cut.normal[axis], 0);
           assert.ok(distance * cut.sign >= -.01, 'A floor split must not clip away the route');
         }
       }
       if (section.building === 2 && section.floor === 0) {
         assert.ok(section.lines.some(line => line === null));
-      } else assert.ok(section.lines.every(line => line !== null), `Missing trace for ${start} → ${end}, building ${section.building} floor ${section.floor}`);
+      } else assert.ok(section.lines.every(line => line !== null), `Missing trace for ${start} -> ${end}, building ${section.building} floor ${section.floor}`);
     }
   }
 });
@@ -129,7 +148,7 @@ test('all entrances and special destinations produce composite routes', () => {
     const map = buildCompositeMap(route);
     assert.ok(map.sections[0].from);
     assert.ok(map.sections.at(-1).to);
-    assert.ok(map.sections[0].lines.every(Boolean), `Missing entrance approach for ${entrance} → ${room}`);
+    assert.ok(map.sections[0].lines.every(Boolean), `Missing entrance approach for ${entrance} -> ${room}`);
   }
 });
 test('floor images share a canvas and are explicitly staged and cached', () => {
@@ -146,8 +165,8 @@ test('floor images share a canvas and are explicitly staged and cached', () => {
   assert.equal(new Set(boxes).size, 1);
   assert.ok(worker.includes("'floor-map.js'"));
   assert.ok(workflow.includes('floor-map.js'));
-  assert.ok(worker.includes("'hallway-paths.js'"));
-  assert.ok(workflow.includes('hallway-paths.js'));
+  assert.ok(worker.includes("'map-geometry.js'"));
+  assert.ok(workflow.includes('map-geometry.js'));
 });
 
 test('every active building connection has traced map ports at both endpoints', () => {
@@ -156,17 +175,19 @@ test('every active building connection has traced map ports at both endpoints', 
       const plan = floorPlans[node];
       const otherBuilding = Number(neighbor.split('-')[0]);
       const port = plan?.ports[otherBuilding];
-      assert.ok(port, `Missing map port for ${node} → ${neighbor}`);
-      assert.ok(hallwayPath(plan, port, port), `Map port off the traced hall: ${node} → ${neighbor}`);
+      assert.ok(port, `Missing map port for ${node} -> ${neighbor}`);
+      assert.ok(hallwayPath(plan, port, port), `Map port off the traced hall: ${node} -> ${neighbor}`);
     }
   }
 });
-test('Gym-to-stairwell-J corridor follows generated hallway centerlines', () => {
-  const gymToJ = hallwayPath(floorPlans['5-1'], [392.5, 325], [548, 300]);
-  assert.deepEqual(gymToJ.slice(0, 4), [[392.5, 325], [393, 334], [393, 344], [527, 344]]);
-  assert.ok(Math.abs(gymToJ.at(-2)[0] - 528) < 1);
-  assert.ok(Math.abs(gymToJ.at(-2)[1] - 300) < 1);
-  assert.deepEqual(gymToJ.at(-1), [548, 300]);
+test('Gym-to-Science corridor follows generated hallway centerlines', () => {
+  const plan = floorPlans['5-1'];
+  const gymToScience = hallwayPath(plan, plan.approach, plan.ports[4]);
+  assert.deepEqual([gymToScience[0], gymToScience.at(-1)], [plan.approach, plan.ports[4]]);
+  assert.ok(gymToScience.slice(1, -1).every(point => onTrace(plan, point)));
+  // The corridor leaves the Gym southward, then crosses east toward Science.
+  const xs = gymToScience.map(point => point[0]), ys = gymToScience.map(point => point[1]);
+  assert.ok(Math.max(...xs) - Math.min(...xs) > 50 && Math.max(...ys) > plan.approach[1]);
   for (const [node, other] of [['5-1', 4], ['4-1', 5]]) {
     const point = floorPlans[node].ports[other];
     assert.ok(point);
@@ -191,8 +212,8 @@ test('updated Main second-floor links draw complete routes in either direction',
   }
 });
 
-test('2407 to 3105 draws each source floor at staircase E', () => {
-  const route = navigate('2407', '3105');
+test('2105 to 3105 draws each source floor at staircase E', () => {
+  const route = navigate('2105', '3105');
   const map = buildCompositeMap(route);
   assert.equal(map.sheets.length, 2);
   assert.deepEqual(map.sections.flatMap(section => section.nodes), route.path);
@@ -207,8 +228,7 @@ test('hallway floor changes use their separate source drawings without a stairwe
     const map = buildCompositeMap(route);
     const hallway = map.sections.filter(section => section.building === 3);
     assert.deepEqual(hallway.map(section => section.floor).sort(), [1, 2]);
-    assert.ok(hallway.every(section => section.split === undefined));
-    assert.equal(map.sheets.length, 2);
+    assert.ok(hallway.every(section => !section.split?.staircase && !section.movements.length));
   }
 });
 test('stairwell clipping preserves the correct half of an image and separates unmatched floors', () => {

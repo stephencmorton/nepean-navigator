@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Extract map observations and generate hallway centerlines from the master SVG.
+"""Generate the app's map geometry from the master SVG.
 
 Usage:
-    python3 tools/extract_svg_map.py --module-output hallway-paths.js
+    python3 tools/extract_svg_map.py --module-output map-geometry.js
     python3 tools/extract_svg_map.py --input public --output /tmp/school-map.json
 
-Centerlines are calculated from the medial axes of large blue hallway outlines
-in tools/floorplans.svg. Smaller blue shapes are omitted as stair and fixture
-symbols. Directions and turns follow the generated centerline graph.
+Centerlines are calculated from the medial axes of the named hallway outlines
+(groups with IDs like hallway-1 or hallway3-0) in tools/floorplans.svg, then
+split between buildings by their building-<b>-<floor> outlines. Stairwells,
+hallway steps, entrances, and room markers come from their named groups.
+See "Drawing rules for floorplans.svg" in CONTRIBUTING.md.
 """
 
 from __future__ import annotations
@@ -21,6 +23,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from export_floor_svgs import floor_layers
+
 
 SVG_NS = "http://www.w3.org/2000/svg"
 BLUE = {"#284283", "#284283ff"}
@@ -30,6 +34,7 @@ BLACK = {"#000000", "#000000ff", "#010101", "#010101ff"}
 SHAPE_TAGS = {"path", "rect", "polygon", "polyline", "line", "circle", "ellipse"}
 TRANSFORM_RE = re.compile(r"([A-Za-z]+)\s*\(([^)]*)\)")
 NUMBER_RE = re.compile(r"[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?")
+PATH_TOKEN_RE = re.compile(r"[A-Za-z]|" + NUMBER_RE.pattern)
 
 # Affine matrices use SVG's [a c e; b d f; 0 0 1] convention.
 IDENTITY = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
@@ -94,7 +99,7 @@ def turn_between(incoming: tuple[float, float], outgoing: tuple[float, float]) -
 
 def path_endpoints(value: str) -> list[tuple[float, float]]:
     """Read endpoints for the common straight path commands used by markers."""
-    tokens = re.findall(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?", value)
+    tokens = PATH_TOKEN_RE.findall(value)
     points: list[tuple[float, float]] = []
     command = None
     x = y = 0.0
@@ -146,17 +151,9 @@ def fmt(value: float) -> float:
     return round(value, 5)
 
 
-def canvas_coordinate(value: float) -> float:
-    """Normalize tiny SVG round-trip noise without rounding real route edits."""
-    nearest = round(value)
-    if abs(value - nearest) < 0.0001:
-        return float(nearest)
-    return fmt(value)
-
-
 def linear_polygons(value: str) -> list[list[tuple[float, float]]]:
     """Read closed subpaths made from SVG M/L/H/V commands."""
-    tokens = re.findall(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?", value)
+    tokens = PATH_TOKEN_RE.findall(value)
     polygons: list[list[tuple[float, float]]] = []
     points: list[tuple[float, float]] = []
     x = y = sx = sy = 0.0
@@ -204,21 +201,13 @@ def linear_polygons(value: str) -> list[list[tuple[float, float]]]:
     return polygons
 
 
-def polygon_area(polygon: list[tuple[float, float]]) -> float:
-    return abs(sum(polygon[i][0] * polygon[(i + 1) % len(polygon)][1] -
-                   polygon[(i + 1) % len(polygon)][0] * polygon[i][1]
-                   for i in range(len(polygon))) / 2)
-
-
 def hallway_mask(layer: ET.Element, vb: list[float]) -> set[tuple[int, int]]:
-    """Rasterize named hallway areas, with the legacy color/size fallback."""
+    """Rasterize the named hallway areas of one floor layer."""
     mask: set[tuple[int, int]] = set()
-    for element, matrix, style, ids in walk(layer, IDENTITY, {}, []):
+    for element, matrix, _style, ids in walk(layer, IDENTITY, {}, []):
         # The descriptive hallway IDs live on their groups, so the geometry
         # below them can be selected independent of its Inkscape-generated ID.
-        # Older drawings without named hallway groups still use blue and area.
-        named_hallway = is_named_hallway(ids)
-        if not (named_hallway or classify_shape(style) & {"blueFeatures"}):
+        if not is_named_hallway(ids):
             continue
         tag = element.tag.rsplit("}", 1)[-1]
         outlines: list[list[tuple[float, float]]] = []
@@ -234,10 +223,7 @@ def hallway_mask(layer: ET.Element, vb: list[float]) -> set[tuple[int, int]]:
                 (point[0] * 773 / vb[2], point[1] * 742 / vb[3])
                 for point in (transform_point(matrix, x, y) for x, y in outline)
             ]
-            # Keep the old size filter for unnamed blue symbols; named hallway
-            # regions are explicit and do not need to be inferred by size.
-            if named_hallway or polygon_area(polygon) >= 450:
-                mask.update(polygon_mask(polygon))
+            mask.update(polygon_mask(polygon))
     return mask
 
 
@@ -375,14 +361,7 @@ def extract_centerlines(source: Path) -> dict[str, list[list[list[float]]]]:
     vb = [float(value) for value in root.get("viewBox", "0 0 0 0").split()]
     if len(vb) != 4 or vb[2] <= 0 or vb[3] <= 0:
         raise ValueError(f"{source}: invalid or missing viewBox")
-    layers: dict[int, ET.Element] = {}
-    for element in root.iter():
-        label = element.get("{http://www.inkscape.org/namespaces/inkscape}label", "")
-        match = re.fullmatch(r"([0-3])_floor", label)
-        if match:
-            layers[int(match.group(1))] = element
-    if set(layers) != set(range(4)):
-        raise ValueError(f"{source}: expected layers 0_floor through 3_floor")
+    layers = floor_layers(root, source)
     result = {}
     for floor, layer in sorted(layers.items()):
         # The master file stores its Inkscape editing visibility. The selected
@@ -507,25 +486,11 @@ def extract_file(path: Path) -> dict[str, Any]:
 
     features: list[dict[str, Any]] = []
     labels: list[dict[str, Any]] = []
-    route_paths: dict[str, list[list[list[float]]]] = {}
     for element, matrix, style, ids in walk(root, IDENTITY, {}, []):
         tag = element.tag.rsplit("}", 1)[-1]
         if style.get("display") == "none" or style.get("visibility") == "hidden":
             continue
         attrs = element_attrs(element)
-        route_node = element.get("data-route-node")
-        if tag == "polyline" and route_node:
-            source_points = [
-                (float(parts[0]), float(parts[1]))
-                for point in (element.get("points") or "").strip().split()
-                if len(parts := point.split(",")) == 2
-            ]
-            # Normalize to the app's 773 × 742 image coordinate system. The
-            # source group transform maps these points into the SVG viewBox.
-            route_paths.setdefault(route_node, []).append([
-                [canvas_coordinate(point[0] * 773 / vb[2]), canvas_coordinate(point[1] * 742 / vb[3])]
-                for point in (transform_point(matrix, x, y) for x, y in source_points)
-            ])
         if tag in SHAPE_TAGS:
             categories = classify_shape(style, ids)
             if not categories:
@@ -606,18 +571,279 @@ def extract_file(path: Path) -> dict[str, Any]:
         "blueFeatures": [f for f in features if "blueFeatures" in f["categories"]],
         "buildingGeometry": [f for f in features if "buildingGeometry" in f["categories"]],
         "hallwayStairMarkers": stairs,
-        "routePaths": route_paths,
         "otherFeatures": [f for f in features if not set(f["categories"]).intersection({"blueFeatures", "buildingGeometry", "entrances", "stairwells", "redStairMarkers"})],
     }
+
+
+FEATURE_RE = re.compile(r"(building|gstairs|steps|entrance)-([a-z0-9-]+)-(\d+)|room-(\d{4})(?:-[a-z0-9-]+)?", re.IGNORECASE)
+STEPS_RE = re.compile(r"(.+?)-(half-flight|full-flight|flight|\d+-steps)", re.IGNORECASE)
+# Hallway pieces, stairs and steps outside every building outline belong to the
+# nearest building on their floor when it is within this many canvas units.
+MAX_GAP = 100
+# Buildings whose hallway ends are closer than this get a computed port.
+PORT_GAP = 30
+
+
+def canvas_point(matrix: tuple[float, ...], x: float, y: float, vb: list[float]) -> tuple[float, float]:
+    px, py = transform_point(matrix, x, y)
+    return ((px - vb[0]) * 773 / vb[2], (py - vb[1]) * 742 / vb[3])
+
+
+def shape_points(element: ET.Element, matrix: tuple[float, ...], vb: list[float]) -> list[tuple[float, float]]:
+    """Return canvas points outlining a straight-sided shape, or the centre of a circle."""
+    tag = element.tag.rsplit("}", 1)[-1]
+    if tag == "path":
+        return [canvas_point(matrix, x, y, vb) for x, y in path_endpoints(element.get("d", ""))]
+    if tag == "rect":
+        x, y = float(element.get("x", "0")), float(element.get("y", "0"))
+        w, h = float(element.get("width", "0")), float(element.get("height", "0"))
+        return [canvas_point(matrix, px, py, vb) for px, py in ((x, y), (x + w, y), (x + w, y + h), (x, y + h))]
+    if tag in {"circle", "ellipse"}:
+        return [canvas_point(matrix, float(element.get("cx", "0")), float(element.get("cy", "0")), vb)]
+    return []
+
+
+def layer_features(layer: ET.Element, floor: int, vb: list[float], source: Path) -> dict[str, dict[str, Any]]:
+    """Collect the points, arrows and labels of each named feature group on one floor."""
+    features: dict[str, dict[str, Any]] = {}
+    for element, matrix, style, ids in walk(layer, IDENTITY, {}, []):
+        identifier = element.get("id")
+        match = FEATURE_RE.fullmatch(identifier or "")
+        if match and match.group(3):
+            suffix = match.group(3)
+            if int(suffix) != floor:
+                raise ValueError(f"{source}: {identifier} is on layer {floor}_floor but its name says floor {suffix}")
+        owner = next((i for i in reversed(ids) if FEATURE_RE.fullmatch(i)), None)
+        if owner is None:
+            continue
+        feature = features.setdefault(owner, {"points": [], "arrows": [], "labels": []})
+        tag = element.tag.rsplit("}", 1)[-1]
+        points = shape_points(element, matrix, vb)
+        feature["points"] += points
+        if tag == "path" and style.get("marker-end", "none") != "none" and color(style.get("stroke")) in RED and len(points) >= 2:
+            feature["arrows"].append((points[0], points[-1]))
+        if tag == "text":
+            feature["labels"].append(" ".join("".join(element.itertext()).split()))
+    return features
+
+
+def bbox(points: list[tuple[float, float]]) -> tuple[float, float, float, float]:
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def centre(points: list[tuple[float, float]]) -> list[float]:
+    x0, y0, x1, y1 = bbox(points)
+    return [round((x0 + x1) / 2, 1), round((y0 + y1) / 2, 1)]
+
+
+def rect_distance(point: tuple[float, float], rect: tuple[float, float, float, float]) -> float:
+    dx = max(rect[0] - point[0], 0, point[0] - rect[2])
+    dy = max(rect[1] - point[1], 0, point[1] - rect[3])
+    return math.hypot(dx, dy)
+
+
+def rect_depth(point: tuple[float, float], rect: tuple[float, float, float, float]) -> float:
+    return min(point[0] - rect[0], rect[2] - point[0], point[1] - rect[1], rect[3] - point[1])
+
+
+def owner_of(point, footprints: dict[str, list[tuple[float, ...]]], present: set[str]) -> str | None:
+    """Return the building containing a point (the deepest, if outlines overlap), else the nearest one."""
+    inside = [(max(rect_depth(point, rect) for rect in footprints[b] if rect_distance(point, rect) == 0), b)
+              for b in present if any(rect_distance(point, rect) == 0 for rect in footprints[b])]
+    if inside:
+        return max(inside)[1]
+    distance, building = min((min(rect_distance(point, rect) for rect in footprints[b]), b) for b in present)
+    return building if distance <= MAX_GAP else None
+
+
+def split_by_building(lines, footprints, present):
+    """Split centerline polylines where they pass from one building's outline to another's."""
+    pieces: dict[str, list[list[list[float]]]] = {}
+    unassigned = 0.0
+    for line in lines:
+        current, points = None, []
+        for a, b in zip(line, line[1:]):
+            length = math.dist(a, b)
+            steps = max(1, math.ceil(length / 0.5))
+            for i in range(steps):
+                t0, t1 = i / steps, (i + 1) / steps
+                mid = (a[0] + (b[0] - a[0]) * (t0 + t1) / 2, a[1] + (b[1] - a[1]) * (t0 + t1) / 2)
+                start = [round(a[0] + (b[0] - a[0]) * t0, 1), round(a[1] + (b[1] - a[1]) * t0, 1)]
+                building = owner_of(mid, footprints, present)
+                if building != current:
+                    if points and points[-1] != start:
+                        points.append(start)
+                    if current is not None and len(points) >= 2:
+                        pieces.setdefault(current, []).append(points)
+                    current, points = building, [start]
+                if building is None:
+                    unassigned += length / steps
+            end = [round(b[0], 1), round(b[1], 1)]
+            if points[-1] != end:
+                points.append(end)
+        if current is not None and len(points) >= 2:
+            pieces.setdefault(current, []).append(points)
+    return pieces, unassigned
+
+
+def project(point, a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    length_squared = dx * dx + dy * dy
+    t = max(0.0, min(1.0, ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / length_squared)) if length_squared else 0.0
+    return [a[0] + t * dx, a[1] + t * dy]
+
+
+def closest_points(lines_a, lines_b):
+    """Return (distance, point on a, point on b) for the closest approach of two polyline sets."""
+    best = (math.inf, None, None)
+    segments_a = [(p, q) for line in lines_a for p, q in zip(line, line[1:])]
+    segments_b = [(p, q) for line in lines_b for p, q in zip(line, line[1:])]
+    for a0, a1 in segments_a:
+        for b0, b1 in segments_b:
+            for point, (s0, s1), from_a in ((a0, (b0, b1), True), (a1, (b0, b1), True), (b0, (a0, a1), False), (b1, (a0, a1), False)):
+                other = project(point, s0, s1)
+                distance = math.dist(point, other)
+                if distance < best[0] - 1e-9:
+                    best = (distance, point, other) if from_a else (distance, other, point)
+    return best
+
+
+def components(lines) -> int:
+    """Count the connected pieces of a set of polylines that share exact vertices."""
+    parent: dict[tuple[float, float], tuple[float, float]] = {}
+
+    def root(point):
+        while parent.setdefault(point, point) != point:
+            point = parent[point]
+        return point
+    for line in lines:
+        for p, q in zip(line, line[1:]):
+            parent[root(tuple(p))] = root(tuple(q))
+    return len({root(point) for point in list(parent)})
+
+
+def steps_feature(name: str, feature: dict[str, Any], source: Path) -> dict[str, Any]:
+    match = STEPS_RE.fullmatch(name)
+    if not match:
+        raise ValueError(f"{source}: steps-{name} must end in half-flight, flight, full-flight or <n>-steps before the floor")
+    labels = [label.upper() for label in feature["labels"] if label.upper() in {"UP", "DN"}]
+    if len(feature["arrows"]) != 1 or len(labels) != 1:
+        raise ValueError(f"{source}: steps-{name} needs exactly one red arrow and one UP or DN label")
+    (tail, head), = feature["arrows"]
+    dx, dy = head[0] - tail[0], head[1] - tail[1]
+    arrow = [1 if dx > 0 else -1, 0] if abs(dx) >= abs(dy) else [0, 1 if dy > 0 else -1]
+    uphill = arrow if labels[0] == "UP" else [-value for value in arrow]
+    extent = match.group(2).lower().replace("full-flight", "flight").replace("-steps", " steps")
+    return {"point": centre(feature["points"]), "extent": extent, "uphill": uphill}
+
+
+def extract_geometry(source: Path) -> dict[str, Any]:
+    """Build the generated map-geometry module data from the master SVG."""
+    centerlines = extract_centerlines(source)
+    root = ET.parse(source).getroot()
+    vb = [float(value) for value in root.get("viewBox", "0 0 0 0").split()]
+    per_floor = {}
+    for floor, layer in sorted(floor_layers(root, source).items()):
+        style = parse_style(layer.get("style"))
+        style["display"] = "inline"
+        layer.set("style", ";".join(f"{key}:{value}" for key, value in style.items()))
+        per_floor[floor] = layer_features(layer, floor, vb, source)
+
+    footprints: dict[str, list[tuple[float, ...]]] = {}
+    present: dict[int, set[str]] = {}
+    for floor, features in per_floor.items():
+        for identifier, feature in features.items():
+            match = re.fullmatch(r"building-(\d)[a-z]?-\d+", identifier)
+            if match:
+                rect = tuple(round(value, 1) for value in bbox(feature["points"]))
+                if rect not in footprints.setdefault(match.group(1), []):
+                    footprints[match.group(1)].append(rect)
+                present.setdefault(floor, set()).add(match.group(1))
+
+    floors: dict[str, dict[str, Any]] = {}
+    entrances: dict[str, dict[str, list[float]]] = {}
+    rooms: dict[str, list[float]] = {}
+    warnings = []
+    for floor, features in per_floor.items():
+        buildings = present.get(floor, set())
+        pieces, unassigned = split_by_building(centerlines[str(floor)], footprints, buildings)
+        if unassigned:
+            warnings.append(f"floor {floor}: {unassigned:.0f} units of hallway are more than {MAX_GAP} from any building")
+        for building in sorted(buildings):
+            floors[f"{building}-{floor}"] = {"paths": pieces.get(building, []), "stairs": {}, "steps": {}, "ports": {}}
+        for identifier, feature in sorted(features.items()):
+            kind, _, rest = identifier.partition("-")
+            if kind == "building" or not feature["points"]:
+                continue
+            name = rest.rsplit("-", 1)[0]
+            if kind == "room":
+                if int(rest[0]) != floor:
+                    warnings.append(f"{identifier} is on layer {floor}_floor but room {rest[:4]} is on floor {rest[0]}; ignored")
+                else:
+                    rooms[rest[:4]] = centre(feature["points"])
+                continue
+            if kind == "entrance":
+                entrances.setdefault(name.upper(), {})[str(floor)] = centre(feature["points"])
+                continue
+            building = owner_of(tuple(centre(feature["points"])), footprints, buildings)
+            if building is None:
+                raise ValueError(f"{source}: {identifier} is more than {MAX_GAP} units from any building on floor {floor}")
+            node = floors[f"{building}-{floor}"]
+            if kind == "gstairs":
+                node["stairs"][name] = centre(feature["points"])
+            else:
+                steps = steps_feature(name, feature, source)
+                node["steps"][STEPS_RE.fullmatch(name).group(1)] = steps
+        nodes = [f"{building}-{floor}" for building in sorted(buildings)]
+        for node in nodes:
+            if components(floors[node]["paths"]) > 1:
+                warnings.append(f"{node}: its hallway is in {components(floors[node]['paths'])} disconnected pieces")
+        for i, a in enumerate(nodes):
+            for b in nodes[i + 1:]:
+                if floors[a]["paths"] and floors[b]["paths"]:
+                    distance, point_a, point_b = closest_points(floors[a]["paths"], floors[b]["paths"])
+                    if distance <= PORT_GAP:
+                        floors[a]["ports"][b.split("-")[0]] = [round(value, 1) for value in point_a]
+                        floors[b]["ports"][a.split("-")[0]] = [round(value, 1) for value in point_b]
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    artwork = [centre(feature["points"]) for identifier, feature in sorted(per_floor[1].items())
+               if identifier.startswith("entrance-")]
+    return {"footprints": {b: [list(rect) for rect in rects] for b, rects in sorted(footprints.items())},
+            "floors": dict(sorted(floors.items())), "entrances": dict(sorted(entrances.items())),
+            "rooms": dict(sorted(rooms.items())), "entranceArtwork": artwork}
+
+
+def js_value(value: Any, indent: int = 0) -> str:
+    """Format JSON-compatible data, keeping short values on one line."""
+    text = json.dumps(value, separators=(", ", ": "))
+    if len(text) + indent <= 120 or not isinstance(value, (dict, list)):
+        return text
+    pad = " " * (indent + 2)
+    if isinstance(value, dict):
+        items = [f"{pad}{json.dumps(key)}: {js_value(item, indent + 2)}," for key, item in value.items()]
+        return "{\n" + "\n".join(items) + "\n" + " " * indent + "}"
+    return "[\n" + "\n".join(f"{pad}{js_value(item, indent + 2)}," for item in value) + "\n" + " " * indent + "]"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("public"), help="directory containing exported floor-N.svg files for observations")
-    parser.add_argument("--source", type=Path, default=Path("tools/floorplans.svg"), help="master Inkscape SVG used to derive centerlines")
-    parser.add_argument("--output", type=Path, help="JSON output path (defaults to stdout)")
-    parser.add_argument("--module-output", type=Path, help="write extracted editable route polylines as an ES module")
+    parser.add_argument("--source", type=Path, default=Path("tools/floorplans.svg"), help="master Inkscape SVG used to derive the map geometry")
+    parser.add_argument("--output", type=Path, help="JSON observations output path (defaults to stdout unless --module-output is given)")
+    parser.add_argument("--module-output", type=Path, help="write the generated map geometry as an ES module")
     args = parser.parse_args()
+    if args.module_output:
+        geometry = extract_geometry(args.source)
+        module = "// Generated from tools/floorplans.svg; do not edit. Coordinates use the 773 x 742 map canvas.\n"
+        module += "// Run: python3 tools/extract_svg_map.py --module-output map-geometry.js\n"
+        module += "".join(f"export const {name} = {js_value(value)};\n" for name, value in geometry.items())
+        args.module_output.parent.mkdir(parents=True, exist_ok=True)
+        args.module_output.write_text(module, encoding="utf-8")
+        print(f"Wrote {args.module_output} ({len(geometry['floors'])} building floors)")
+        if not args.output:
+            return 0
     paths = sorted(args.input.glob("floor-*.svg"))
     if not paths:
         parser.error(f"no floor-*.svg files found in {args.input}")
@@ -625,36 +851,15 @@ def main() -> int:
     route_paths = extract_centerlines(args.source)
     for floor in floors:
         floor["generatedCenterlines"] = route_paths[str(floor["floor"])]
-    if args.module_output:
-        floor_one = next((floor for floor in floors if floor["floor"] == 1), None)
-        if floor_one is None:
-            parser.error("--input must include public/floor-1.svg to extract entrance artwork")
-        vb_x, vb_y, vb_width, vb_height = floor_one["viewBox"]
-        entrance_artwork = [
-            [round((feature["center"][0] - vb_x) * 773 / vb_width, 3),
-             round((feature["center"][1] - vb_y) * 742 / vb_height, 3)]
-            for feature in floor_one["entrances"] if feature.get("center")
-        ]
-        module = "// Generated as medial-axis centerlines from blue hallway outlines in tools/floorplans.svg.\n"
-        module += "// Run: python3 tools/extract_svg_map.py --module-output hallway-paths.js\n"
-        module += "export const hallwayPaths = " + json.dumps(route_paths, indent=2, ensure_ascii=False) + ";\n"
-        module += "export const entranceArtwork = " + json.dumps(entrance_artwork, indent=2, ensure_ascii=False) + ";\n"
-        args.module_output.parent.mkdir(parents=True, exist_ok=True)
-        args.module_output.write_text(module, encoding="utf-8")
-        print(f"Wrote {args.module_output} ({len(route_paths)} hallway plans)")
     data = {
         "schemaVersion": 1,
         "coordinateSystem": "Each floor's SVG viewBox coordinates after ancestor transforms.",
         "routingModel": {
-            "hallways": "Named hallway areas in tools/floorplans.svg are rasterized and thinned into per-floor medial-axis networks; older drawings fall back to large blue areas.",
+            "hallways": "Named hallway areas in tools/floorplans.svg are rasterized and thinned into per-floor medial-axis networks.",
             "direction": "Implicit in traversal of the extracted centerline graph from the route origin toward its destination.",
             "turns": "Derived from successive ordered centerline vectors at a junction; no left/right turn is stored on a floor connection. turn_between() implements this for SVG coordinates.",
             "stairs": "Named stairwell geometry is grouped by descriptive ID. UP/DN labels and red arrows remain source observations for in-hallway stairs; cross-floor matches require review.",
         },
-        "declaredConnections": [
-            {"from": "5-1", "to": "4-1", "kind": "hallway", "viaStairwell": "J",
-             "source": "user-described Gym-to-stairwell-J hallway"}
-        ],
         "floors": floors,
     }
     serialized = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
@@ -662,7 +867,7 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(serialized, encoding="utf-8")
         print(f"Wrote {args.output} ({len(floors)} floors; {sum(len(f['blueFeatures']) for f in floors)} blue geometry candidates)")
-    else:
+    elif not args.module_output:
         sys.stdout.write(serialized)
     return 0
 

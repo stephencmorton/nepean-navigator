@@ -6,7 +6,7 @@ import {buildCompositeMap} from '../floor-map.js';
 test('the map marks the selected stairwell in both directions, including basement and skipped floors', () => {
   for (const [start, end, building, staircase, direction] of [
     ['1205', '2206', 2, 'B', 'up'], ['2206', '1205', 2, 'B', 'down'],
-    ['0201', '3201', 2, 'B', 'up'], ['2407', '3105', 1, 'E', 'up'],
+    ['0201', '3201', 2, 'B', 'up'], ['2105', '3105', 1, 'E', 'up'], ['2407', '3105', 2, 'B', 'up'],
     ['3105', '2105', 1, 'E', 'down'], ['2412', '0401', 4, 'J', 'down'],
   ]) {
     const map = buildCompositeMap(navigate(start, end));
@@ -26,7 +26,7 @@ test('hallway steps, entrance approaches, and same-floor routes have no stairwel
     ['2205', '2206'], ['C', '2101'], ['N', '2306'], ['N', '1305'],
   ]) {
     const map = buildCompositeMap(navigate(start, end));
-    assert.ok(map.sections.every(section => !section.movements.length), `${start} → ${end}`);
+    assert.ok(map.sections.every(section => !section.movements.length), `${start} -> ${end}`);
   }
 });
 

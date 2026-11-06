@@ -1,5 +1,10 @@
 // Map graph construction, room validation, and route instructions independent of the browser UI.
 import {school} from './data.js';
+import {drawnRouteEvents} from './floor-map.js';
+
+const reverseVertical = direction => ({up: 'down', down: 'up'}[direction] ?? direction);
+const oppositeCompass = direction => ({north: 'south', south: 'north', east: 'west', west: 'east'}[direction] ?? direction);
+const buildingOf = node => Number(node.split('-')[0]);
 
 export function buildGraph(data = school) {
   const graph = new Map();
@@ -9,16 +14,21 @@ export function buildGraph(data = school) {
     graph.get(a).add(b);
     graph.get(b).add(a);
   };
+  graph.backStairs = new Set();
   for (const {from, to} of data.connections) link(from, to);
   for (const [building, staircases] of Object.entries(data.staircases)) {
-    for (const {floors} of Object.values(staircases)) {
+    for (const {floors, backStairs} of Object.values(staircases)) {
       for (const floor of floors) {
         const node = `${building}-${floor}`;
         if (!graph.has(node)) graph.set(node, new Set());
       }
       // A stairwell can connect any two listed floors in one instruction.
       for (let i = 0; i < floors.length; i++) {
-        for (let j = i + 1; j < floors.length; j++) link(`${building}-${floors[i]}`, `${building}-${floors[j]}`);
+        for (let j = i + 1; j < floors.length; j++) {
+          const [a, b] = [`${building}-${floors[i]}`, `${building}-${floors[j]}`];
+          link(a, b);
+          if (backStairs) graph.backStairs.add(`${a} ${b}`).add(`${b} ${a}`);
+        }
       }
     }
   }
@@ -40,7 +50,7 @@ export function parseRoom(value) {
   if (!description) throw new Error(`Room ${number} has a building or floor absent from the school map.`);
   const room = Number(number.slice(2));
   if (floor < description.lowestFloor || floor > description.highestFloor) {
-    throw new Error(`Room ${number} is outside the floor range for the ${description.name} building (${description.lowestFloor}–${description.highestFloor}).`);
+    throw new Error(`Room ${number} is outside the floor range for the ${description.name} building (${description.lowestFloor}\u2013${description.highestFloor}).`);
   }
   if (room < 1 || room > description.highRoom) {
     throw new Error(`Room ${number} must have last 2 digits of room number between 01 and ${String(description.highRoom).padStart(2, '0')} in the ${description.name} building.`);
@@ -88,7 +98,7 @@ function directionsData(path, start, end) {
     const turn = typeof connection.turn === 'object' ? connection.turn : {};
     return {...connection, turn: {...turn, incoming: turnModel.incoming, outgoing: turnModel.outgoing}};
   });
-  return {...school, connections, routeDeparture: rule.fromRoom === start.number ? rule.departure : undefined};
+  return {...school, connections};
 }
 const compassVector = {north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0]};
 function turnFromVectors(incoming, outgoing) {
@@ -113,8 +123,7 @@ function connectionTurnDirection(connection, from, data = school) {
 function connectionTurnInstruction(connection, from, data) {
   if (!connection?.turn) return '';
   const direction = connectionTurnDirection(connection, from, data);
-  const [nextBuilding] = connection.from === from ? connection.to.split('-').map(Number)
-    : connection.from.split('-').map(Number);
+  const nextBuilding = buildingOf(connection.from === from ? connection.to : connection.from);
   const hallway = connection.turn.hallway ?? `${data.buildings[nextBuilding].name} hallway`;
   return `Turn ${direction} into the ${hallway}.`;
 }
@@ -127,8 +136,8 @@ function describeInFloorStairs(path, index, data = school) {
       (item.between[1] === previous && item.between[0] === next)));
   if (!stairs) return '';
   const forward = stairs.between[0] === previous;
-  const direction = forward ? stairs.direction : ({up: 'down', down: 'up'}[stairs.direction] ?? stairs.direction);
-  const facing = forward ? stairs.whenFacing : ({north: 'south', south: 'north', east: 'west', west: 'east'}[stairs.whenFacing] ?? stairs.whenFacing);
+  const direction = forward ? stairs.direction : reverseVertical(stairs.direction);
+  const facing = forward ? stairs.whenFacing : oppositeCompass(stairs.whenFacing);
   const rightOf = {north: 'east', east: 'south', south: 'west', west: 'north'}[facing];
   const leftOf = {north: 'west', west: 'south', south: 'east', east: 'north'}[facing];
   const side = stairs.position === rightOf ? 'right' : stairs.position === leftOf ? 'left' : stairs.position;
@@ -147,24 +156,62 @@ function describeRoom(room) {
   return `${directionRoomLabel(room)}, ${location} of the ${school.buildings[room.building].name} building`;
 }
 // Use breadth-first search to find a route with the fewest graph edges, or return null.
+// Among equally short routes, prefer the one using the fewest back-stair edges.
 export function findPath(map, start, end) {
   if (!map.has(start) || !map.has(end)) return null;
   const queue = [start];
-  const parents = new Map([[start, null]]);
+  const best = new Map([[start, {depth: 0, back: 0, parent: null}]]);
   for (let i = 0; i < queue.length; i++) {
-    const node = queue[i];
+    const node = queue[i], {depth, back} = best.get(node);
     if (node === end) {
       const path = [];
-      for (let cursor = end; cursor !== null; cursor = parents.get(cursor)) path.push(cursor);
+      for (let cursor = end; cursor !== null; cursor = best.get(cursor).parent) path.push(cursor);
       return path.reverse();
     }
     for (const neighbor of map.get(node)) {
-      if (!parents.has(neighbor)) { parents.set(neighbor, node); queue.push(neighbor); }
+      const cost = back + (map.backStairs?.has(`${node} ${neighbor}`) ? 1 : 0), known = best.get(neighbor);
+      if (!known) { best.set(neighbor, {depth: depth + 1, back: cost, parent: node}); queue.push(neighbor); }
+      else if (known.depth === depth + 1 && cost < known.back) Object.assign(known, {back: cost, parent: node});
     }
   }
   return null;
 }
-export function describeStep(from, to, side, data = school) {
+const stairLabelOf = extent => ({'half-flight': 'a half-flight of stairs', flight: 'a flight of stairs'}[extent] ?? (extent || 'the connecting stairs'));
+// Steps with no turn between them read as one phrase.
+function stepsPhrase(run) {
+  const [{direction, extent}] = run;
+  if (run.length === 1) return `go ${direction} ${stairLabelOf(extent)}`;
+  if (run.some(item => item.direction !== direction)) return 'go up and down some short flights of stairs';
+  if (run.length === 2 && run.every(item => item.extent === 'half-flight')) return `go ${direction} two half-flights of stairs`;
+  return `go ${direction} several short flights of stairs`;
+}
+function drawnPhrases(events) {
+  const phrases = [];
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    if (event.corner && events[i + 1]?.corner && events[i + 1].direction === event.direction) {
+      phrases.push(`follow the hallway ${event.direction} around two corners`);
+      i++;
+      continue;
+    }
+    if (event.kind !== 'steps') {
+      phrases.push(event.kind === 'straight' ? 'continue straight'
+        : event.corner ? `follow the hallway ${event.direction} around the corner` : `turn ${event.direction}`);
+      continue;
+    }
+    let last = i;
+    while (events[last + 1]?.kind === 'steps') last++;
+    phrases.push(stepsPhrase(events.slice(i, last + 1)));
+    i = last;
+  }
+  return phrases;
+}
+function sentence(phrases) {
+  const text = phrases.length < 3 ? phrases.join(' and ') : `${phrases.slice(0, -1).join(', ')}, and ${phrases.at(-1)}`;
+  return `${text[0].toUpperCase()}${text.slice(1)}.`;
+}
+// drawn holds phrases from the drawing for the floor walked before and after crossing into the next building.
+export function describeStep(from, to, side, data = school, drawn = {}) {
   const [building, floor] = from.split('-').map(Number);
   const [nextBuilding, nextFloor] = to.split('-').map(Number);
   if (building !== nextBuilding) {
@@ -175,12 +222,15 @@ export function describeStep(from, to, side, data = school) {
     const turnDirection = connectionTurnDirection(connection, from, data);
     const hallwayName = typeof turn === 'object' && turn.hallway ? turn.hallway
       : `${data.buildings[nextBuilding].name} hallway`;
+    const destination = `the ${data.buildings[nextBuilding].name} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}`;
+    const direction = stairs && (connection.from === from ? stairs.direction : reverseVertical(stairs.direction));
+    if (drawn.before?.length || drawn.after?.length) {
+      const crossing = stairs ? `go ${direction} ${stairLabelOf(stairs.extent)} into ${destination}` : `enter ${destination}`;
+      return sentence([...drawn.before ?? [], crossing, ...drawn.after ?? []]);
+    }
     let movement = 'Enter';
     if (stairs) {
-      const direction = connection.from === from ? stairs.direction
-        : ({up: 'down', down: 'up'}[stairs.direction] ?? stairs.direction);
-      const stairLabel = stairs.extent === 'half-flight' ? 'a half-flight of stairs'
-        : stairs.extent || 'the connecting stairs';
+      const stairLabel = stairLabelOf(stairs.extent);
       const lead = turn && !separateTurn ? `Turn ${turnDirection} into the ${hallwayName} and`
         : direction === 'up' || direction === 'down' ? 'Continue along the hallway and' : null;
       movement = direction === 'up' || direction === 'down'
@@ -189,7 +239,7 @@ export function describeStep(from, to, side, data = school) {
           : `Continue along the hallway, taking ${stairLabel} into`;
     }
     if (!stairs && turn && !separateTurn) movement = `Turn ${turnDirection} into the ${hallwayName} and continue into`;
-    return `${movement} the ${data.buildings[nextBuilding].name} building ${nextFloor === 0 ? 'via' : 'on'} the ${floorName(nextFloor)}.`;
+    return `${movement} ${destination}.`;
   }
   const choices = staircaseChoices(building, floor, nextFloor, side, data);
   const direction = nextFloor > floor ? 'up' : 'down';
@@ -216,7 +266,6 @@ export function staircaseChoices(building, floor, nextFloor, side, data = school
 }
 // Inspect a whole visit to Main, including its entry and departure sides.
 export function mainStairwellVisit(path, index, start, end, data = school) {
-  const buildingOf = node => Number(node.split('-')[0]);
   let entry = index;
   while (entry > 0 && buildingOf(path[entry - 1]) === 2) entry--;
   let exit = index;
@@ -229,11 +278,31 @@ export function mainStairwellVisit(path, index, start, end, data = school) {
     : data.knownRooms[end.number]?.stairwellSide;
   return {entrySide, side: exitSide ?? entrySide, exit};
 }
+// Phrases for floors whose directions follow the drawing, attached to the building crossing on either side when there is one.
+function drawnRoutePhrases(path, start, end, data) {
+  const phrases = path.map((node, i) => {
+    if (!data.hallwayNetwork.floors[node]?.drawnDirections) return [];
+    let events = drawnRouteEvents(path, i, start, end);
+    // An entrance's approach instruction already covers the walk up to the first turn.
+    if (i === 0 && start.approachInstruction) {
+      const turn = events.findIndex(event => event.kind !== 'steps');
+      events = turn < 0 ? [] : events.slice(turn);
+    }
+    return drawnPhrases(events);
+  });
+  const crosses = (a, b) => a >= 0 && b < path.length && buildingOf(path[a]) !== buildingOf(path[b]);
+  return path.map((_, i) => ({
+    before: crosses(i, i + 1) && !crosses(i - 1, i) ? phrases[i] : [],
+    after: crosses(i, i + 1) ? phrases[i + 1] : [],
+    alone: crosses(i - 1, i) || crosses(i, i + 1) ? [] : phrases[i],
+  }));
+}
 function describePath(path, start, end, data = school) {
   const steps = [];
-  const buildingOf = node => Number(node.split('-')[0]);
+  const drawn = drawnRoutePhrases(path, start, end, data);
   let stairwellSide;
   for (let i = 0; i < path.length; i++) {
+    if (drawn[i].alone.length) steps.push(sentence(drawn[i].alone));
     let instruction = '';
     const inFloorStairInstruction = describeInFloorStairs(path, i, data);
     if (inFloorStairInstruction) steps.push(inFloorStairInstruction);
@@ -253,7 +322,7 @@ function describePath(path, start, end, data = school) {
           : `Head to the ${side} end of the hallway in the Main building.`;
       }
     }
-    const movement = i + 1 < path.length ? describeStep(path[i], path[i + 1], buildingOf(path[i]) === 2 ? stairwellSide : undefined, data) : '';
+    const movement = i + 1 < path.length ? describeStep(path[i], path[i + 1], buildingOf(path[i]) === 2 ? stairwellSide : undefined, data, drawn[i]) : '';
     const connection = i + 1 < path.length ? connectionBetween(path[i], path[i + 1], data) : undefined;
     if (typeof connection?.turn?.afterStairs === 'boolean') {
       if (instruction) steps.push(instruction);
@@ -286,7 +355,7 @@ export function navigate(startValue, endValue) {
         let approach = `start at the ${start.side} end of the hallway`;
         if (start.approachStairs) {
           const {direction, extent, toLevel} = start.approachStairs;
-          const stairExtent = extent === 'half-flight' ? 'a half-flight' : extent;
+          const stairExtent = {'half-flight': 'a half-flight', flight: 'a flight of stairs'}[extent] ?? extent;
           const level = toLevel === undefined ? '' : ` to the ${toLevel} landing`;
           const logicalFloor = toLevel === undefined ? '' : `, treated as the ${floorName(start.floor)}`;
           approach = `go ${direction} ${stairExtent}${level}${logicalFloor} at the ${start.side} end of the hallway`;
@@ -300,7 +369,7 @@ export function navigate(startValue, endValue) {
           : `From Entrance ${start.entrance}, ${approach} ${location}`);
       }
       const data = directionsData(path, start, end);
-      const departure = data.routeDeparture ?? school.knownRooms[start.number]?.departure;
+      const departure = school.knownRooms[start.number]?.departure;
       if (departure) steps.push(departure);
       steps.push(...describePath(path, start, end, data));
       const arrival = path.length === 1 ? 'Stay on this floor and walk to' : 'Continue on this floor to';

@@ -62,7 +62,7 @@ test('C and N orient users at the east end, including same-floor destinations', 
     assert.equal(parseStart(id).floor, 2);
     assert.match(route.steps[0], /1st \(ground\) floor/);
     if (id === 'N') {
-      assert.match(route.steps[1], /half-flight to the 1\.5 landing/);
+      assert.match(route.steps[1], /go up a flight of stairs/);
       assert.match(route.steps[1], /2nd floor/);
       assert.match(route.steps[1], /east end of the hallway/);
     } else {
@@ -72,12 +72,13 @@ test('C and N orient users at the east end, including same-floor destinations', 
     assert.doesNotMatch(route.steps.join(' '), /already at the destination/);
   }
 });
-test('Entrance N separates its physical half-flight approach from logical floor 2', () => {
+test('Entrance N separates its physical flight of stairs from logical floor 2', () => {
   const start = parseStart('N');
   assert.equal(start.doorFloor, 1);
   assert.equal(start.floor, 2);
-  assert.deepEqual(start.approachStairs, {direction: 'up', extent: 'half-flight', fromLevel: 1, toLevel: 1.5});
-  assert.match(navigate('N', '2306').steps[1], /go up a half-flight to the 1\.5 landing, treated as the 2nd floor/);
+  assert.deepEqual(start.approachStairs, {direction: 'up', extent: 'flight'});
+  assert.equal(navigate('N', '2306').steps[1],
+    'From Entrance N, go up a flight of stairs at the east end of the hallway on the 2nd floor of the Music/Auditorium building.');
   assert.equal(school.inFloorStairs[0].node, '3-2');
   assert.equal(school.inFloorStairs[0].logicalFloor, 2);
   assert.deepEqual(school.inFloorStairs[0].between, ['2-2', '4-2']);

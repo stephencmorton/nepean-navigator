@@ -17,6 +17,15 @@ test('same room, different room on same floor, and guidance half-level', () => {
   assert.match(navigate('2205', '2206').steps[1], /walk to room 2206/);
   for (const start of ['2205', '2301']) assert.match(navigate(start, '2201').steps.at(-1), /half-level/);
 });
+test('back stairs are used only when no equally short route avoids them', () => {
+  assert.deepEqual(navigate('2407', '3105').path, ['4-2', '3-2', '2-2', '2-3', '1-3']);
+  assert.match(navigate('2407', '3105').steps.join(' '), /staircase B at the south end of the hallway up to the 3rd floor/);
+  assert.deepEqual(navigate('2105', '3105').path, ['1-2', '1-3']);
+  const tie = buildGraph({connections: [{from: '1-1', to: '2-1'}, {from: '1-2', to: '2-2'}],
+    staircases: {1: {E: {side: 'south', floors: [1, 2], backStairs: true}}, 2: {B: {side: 'south', floors: [1, 2]}}}});
+  assert.deepEqual(findPath(tie, '1-1', '2-2'), ['1-1', '2-1', '2-2']);
+  assert.deepEqual(findPath(tie, '2-2', '1-1'), ['2-2', '2-1', '1-1']);
+});
 test('Math/Science connects to Main and missing connections return no path', () => {
   assert.deepEqual(navigate('1401', '2205').path, ['4-1', '5-1', '2-1', '2-2']);
   assert.deepEqual(navigate('2412', '1203').path, ['4-2', '3-2', '2-2', '2-1']);
@@ -166,7 +175,7 @@ test('Entrance C to room 0407 names only its two hallway turns', () => {
   const route = navigate('C', '0407');
   const turns = route.steps.filter(step => /Turn (left|right)/.test(step));
   assert.equal(turns.length, 2);
-  assert.match(turns[0], /Turn right into the north-south hallway/);
+  assert.equal(turns[0], 'Turn right and go up a half-flight of stairs into the Main building on the 2nd floor.');
   assert.equal(turns[1], 'Turn left into the hallway.');
   const turnIndex = route.steps.indexOf(turns[1]);
   assert.match(route.steps[turnIndex + 1], /Go up the half-flight of stairs on the right of the hallway and continue/);
@@ -174,8 +183,6 @@ test('Entrance C to room 0407 names only its two hallway turns', () => {
   assert.match(route.steps[turnIndex - 2], /Walk through the Main building to the north end of the hallway/);
   assert.match(route.steps[turnIndex - 1], /go down a half-flight of stairs into the Music\/Auditorium building/);
   assert.doesNotMatch(route.steps.join(' '), /hallway bend/);
-  assert.match(describeStep('2-2', '1-2'), /Turn left into the north-south hallway/);
-  assert.match(describeStep('1-2', '2-2'), /Turn right into the north-south hallway/);
   assert.doesNotMatch(describeStep('2-2', '3-2'), /Turn (left|right)/);
   const reverse = navigate('2301', '2205').steps;
   const reverseTurn = reverse.findIndex(step => step === 'Turn right into the hallway.');
@@ -196,16 +203,23 @@ test('0407 to 3110 uses the new Gym corridor when it shortens the route', () => 
   assert.doesNotMatch(steps.join(' '), /hallway bend|as you face/);
 });
 
-test('2107 to 2301 turns follow the traveler’s approach and reverse with travel', () => {
+test('Art floor 2 directions follow the drawn turns and steps on each branch', () => {
+  const toMain = 'Follow the hallway right around the corner, go down a half-flight of stairs, turn left, and go up a half-flight of stairs into the Main building on the 2nd floor.';
+  assert.equal(navigate('2107', '2407').steps[1], toMain);
+  assert.equal(navigate('2205', '2107').steps[1], 'Head to the south end of the hallway in the Main building. Go down a half-flight of stairs into the Art/English building on the 2nd floor, turn right, go up a half-flight of stairs, and follow the hallway left around the corner.');
+  assert.equal(navigate('2105', '3105').steps[1], 'Follow the hallway left around the corner.');
+  // The Cafeteria stairs lead straight across the junction into Main.
+  assert.equal(navigate('1101', '2205').steps[2], 'Continue straight and go up a half-flight of stairs into the Main building on the 2nd floor.');
+  assert.equal(navigate('1101', '3101').steps[2], 'Turn left, go up a half-flight of stairs, and follow the hallway left around two corners.');
+  // Entrance C's approach covers its stairs, so the drawn route starts at the junction.
+  assert.equal(navigate('C', '2107').steps[2], 'Continue straight, go up a half-flight of stairs, and follow the hallway left around the corner.');
+});
+
+test('2107 to 2301 turns into the Music hallway by route and reverses with travel', () => {
   const forward = navigate('2107', '2301');
   assert.deepEqual(forward.path, ['1-2', '2-2', '3-2']);
-  assert.equal(forward.steps[1], 'Exit the Art building by walking north along the hallway, following it right around the corner, and going down a half-flight of stairs until you see a long hallway and stairs on your left.');
-  assert.match(forward.steps[2], /^Turn left into the north-south hallway/);
-  assert.deepEqual(forward.steps.flatMap(step => [...step.matchAll(/Turn (left|right)/g)].map(match => match[1])), ['left', 'right']);
-  const reverse = navigate('2301', '2107');
-  assert.doesNotMatch(reverse.steps.join(' '), /Exit the Art building/);
-  // Reverse the turn order and swap left/right: right becomes left, then left becomes right.
-  assert.deepEqual(reverse.steps.flatMap(step => [...step.matchAll(/Turn (left|right)/g)].map(match => match[1])), ['left', 'right']);
+  assert.equal(forward.steps.at(-2), 'Turn right into the hallway.');
+  assert.equal(navigate('2301', '2107').steps[1], 'Turn left into the hallway.');
 });
 
 test('three-digit basement entries normalize before route finding', () => {
@@ -231,7 +245,7 @@ test('named staircases connect their own floor lists without inventing shortcuts
 test('directions include labels and sides for staircases serving both floors', () => {
   assert.match(navigate('2205', '3301').steps[1], /staircase A at the north end of the hallway up/);
   assert.match(navigate('3205', '2201').steps[1], /staircase B at the south end of the hallway down/);
-  assert.match(navigate('2412', '1401').steps.join(' '), /J at the east/);
+  assert.match(navigate('2412', '1401').steps.join(' '), /I at the east end of the hallway; or J at the west end/);
 });
 
 test('building 3 uses its mapped hallway stairs without detouring through building 4', () => {
@@ -250,9 +264,10 @@ test('building 3 uses its mapped hallway stairs without detouring through buildi
   assert.ok(graph.get('3-2').has('2-2'));
 });
 
-test('Building 3 connects to Building 4 by three steps from the floor-1 connector', () => {
-  assert.match(describeStep('3-1', '4-1'), /go down 3 steps into the Math\/Science building on the 1st/);
-  assert.match(describeStep('4-1', '3-1'), /go up 3 steps into the Music\/Auditorium building on the 1st/);
+test('Building 3 connects to Building 4 by a half-flight on floor 1 and three steps on floor 2', () => {
+  assert.match(describeStep('3-1', '4-1'), /go down a half-flight of stairs into the Math\/Science building on the 1st/);
+  assert.match(describeStep('4-1', '3-1'), /go up a half-flight of stairs into the Music\/Auditorium building on the 1st/);
+  assert.match(describeStep('3-2', '4-2'), /go up 3 steps into the Math\/Science building on the 2nd/);
 });
 
 test('connecting stairs reverse known directions and preserve unknown directions', () => {
@@ -274,8 +289,6 @@ test('connecting stairs reverse known directions and preserve unknown directions
     assert.ok(graph.get(from).has(to));
     assert.ok(graph.get(to).has(from));
   }
-  assert.match(describeStep('3-1', '4-1'), /go down 3 steps/);
-  assert.match(describeStep('4-1', '3-1'), /go up 3 steps/);
   assert.match(describeStep('3-2', '4-2'), /go up 3 steps/);
   assert.match(describeStep('4-2', '3-2'), /go down 3 steps/);
   const unknown = {

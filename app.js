@@ -1,5 +1,5 @@
 import {school} from './data.js';
-import {renderRouteMap} from './route-map.js';
+import {renderRouteMap, phoneLandscape} from './route-map.js';
 import {setupInstallation} from './install.js';
 import {navigate, constrainRoomInput, floorName} from './routing.js';
 
@@ -15,7 +15,6 @@ const mapDisclosureAction = routeMapPanel.querySelector('summary span');
 routeMapPanel.addEventListener('toggle', () => {
   mapDisclosureAction.textContent = routeMapPanel.open ? 'Click to collapse' : 'Click to expand';
 });
-const phoneLandscape = window.matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)');
 phoneLandscape.addEventListener('change', () => {
   if (!routeMapPanel.hidden) routeMapPanel.open = phoneLandscape.matches;
 });
@@ -49,7 +48,7 @@ numberCardObserver.observe(exampleNumberCard);
 function explainRoomNumber(number, label) {
   const card = numberCardTemplate.content.firstElementChild.cloneNode(true);
   const name = school.knownRooms[number]?.name ?? `Room ${number}`;
-  card.querySelector('h3').textContent = `${label} · ${name}`;
+  card.querySelector('h3').textContent = `${label} \u00b7 ${name}`;
   const groups = [
     floorName(Number(number[0])),
     school.buildings[Number(number[1])].name,
@@ -161,9 +160,9 @@ function renderRouteSummary({start, end}) {
   for (const [prefix, room] of [['from', start], ['to', end]]) {
     const {number} = room;
     const name = school.knownRooms[number]?.name;
-    document.querySelector(`#route-${prefix}-label`).textContent = room.entrance ? `Entrance ${room.entrance}` : name ? `${name} · ${number}` : `Room ${number}`;
+    document.querySelector(`#route-${prefix}-label`).textContent = room.entrance ? `Entrance ${room.entrance}` : name ? `${name} \u00b7 ${number}` : `Room ${number}`;
     const level = school.knownRooms[number]?.level ?? floorName(room.doorFloor ?? room.floor);
-    document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building].name} · ${level}`;
+    document.querySelector(`#route-${prefix}-location`).textContent = `${school.buildings[room.building].name} \u00b7 ${level}`;
   }
 }
 for (const input of roomInputs) {
