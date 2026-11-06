@@ -1,6 +1,7 @@
 import {school} from './data.js';
+import {entranceArtwork} from './hallway-paths.js';
 import {floorName} from './routing.js';
-import {buildCompositeMap, bounds, sectionPolygon, shifted, roomApproaches} from './floor-map.js';
+import {buildCompositeMap, bounds, sectionPolygon, shifted, roomApproaches, routeViewBox, sheetMapViewBox, constrainViewBox, scaleViewBox} from './floor-map.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const element = (name, attrs = {}, text = '') => {
@@ -27,14 +28,8 @@ function renderFloorComposite(route) {
       .filter(building => !sheet.sections.some(section => section.building === building))
       .map(building => ({building, floor: 1, offset: [0, 0]}));
     const layers = [...context, ...sheet.sections];
-    const boxes = [[0, 0, 773, 742], ...layers.map(section => {
-      const box = bounds[section.building];
-      return [...shifted(box.slice(0, 2), section.offset), ...box.slice(2)];
-    })];
-    const x = Math.min(...boxes.map(box => box[0])) - 12, y = Math.min(...boxes.map(box => box[1])) - 24;
-    const width = Math.max(...boxes.map(box => box[0] + box[2])) - x + 12;
-    const height = Math.max(...boxes.map(box => box[1] + box[3])) - y + 12;
-    const svg = element('svg', {viewBox: `${x} ${y} ${width} ${height}`, role: 'img', class: 'floor-route-map', 'aria-labelledby': `floor-map-title-${sheetIndex} floor-map-desc-${sheetIndex}`});
+    const [x, y, width, height] = sheetMapViewBox(sheet);
+    const svg = element('svg', {viewBox: `${x} ${y} ${width} ${height}`, preserveAspectRatio: 'xMidYMid meet', role: 'img', class: 'floor-route-map', 'aria-labelledby': `floor-map-title-${sheetIndex} floor-map-desc-${sheetIndex}`});
     svg.append(element('title', {id: `floor-map-title-${sheetIndex}`}, 'Route across floor plans'));
     svg.append(element('desc', {id: `floor-map-desc-${sheetIndex}`}, sheet.sections.map(section =>
       `${school.buildings[section.building].name}: ${section.floors.map(floorName).join(' to ')}. Room positions are estimates; named destinations show their approach.`).join(' ')));
@@ -115,6 +110,17 @@ function renderFloorComposite(route) {
         : location[1] + (location[1] + 20 < y + height - 5 ? 20 : -12);
       svg.append(element('text', {x: location[0] + (alignLeft ? -8 : 8), y: labelY, 'text-anchor': alignLeft ? 'end' : 'start', class: 'floor-endpoint-label'}, text));
     }
+    // Entrance badges can sit just outside a building's clipped outline. Restore
+    // their original artwork above the route annotations so the white letters
+    // remain visible on every composite map sheet.
+    const entranceClipId = `floor-entrances-${sheetIndex}`;
+    const entranceClip = element('clipPath', {id: entranceClipId, clipPathUnits: 'userSpaceOnUse'});
+    for (const point of entranceArtwork) {
+      entranceClip.append(element('rect', {x: point[0] - 11, y: point[1] - 11, width: 22, height: 22}));
+    }
+    defs.append(entranceClip);
+    svg.append(element('image', {href: './public/floor-1.svg', x: 0, y: 0, width: 773, height: 742,
+      preserveAspectRatio: 'none', 'clip-path': `url(#${entranceClipId})`, class: 'floor-entrance-artwork', 'pointer-events': 'none'}));
     container.append(svg);
     for (const section of sheet.sections.filter(section => section.lines.some(line => !line))) {
       const note = document.createElement('p'); note.className = 'floor-map-gap';
@@ -122,19 +128,85 @@ function renderFloorComposite(route) {
       container.append(note);
     }
   });
-  return container;
+  return {container, model};
 }
 export function renderRouteMap(container, route) {
   container.replaceChildren();
   container.hidden = !route.path;
   if (!route.path) return;
-  const composite = renderFloorComposite(route);
+  const {container: composite, model} = renderFloorComposite(route);
 
   const viewport = document.createElement('div');
   viewport.className = 'map-viewport';
   viewport.tabIndex = 0;
   viewport.setAttribute('role', 'region');
-  viewport.setAttribute('aria-label', 'Building map; pinch to zoom and scroll to pan');
+  viewport.setAttribute('aria-label', 'Building map; pinch to zoom and drag to pan');
   viewport.append(composite);
   container.append(viewport);
+
+  // Crop each phone map sheet to its complete route. SVG preserveAspectRatio
+  // then fits that viewBox without relying on a fragile scroll position.
+  const phoneLandscape = matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)');
+  const maps = [...composite.querySelectorAll('.floor-route-map')];
+  maps.forEach(svg => { svg.dataset.fullViewBox = svg.getAttribute('viewBox'); });
+  const parseViewBox = value => value.split(/\s+/).map(Number);
+  const setViewBox = (svg, viewBox) => svg.setAttribute('viewBox', viewBox.join(' '));
+  const addGestures = svg => {
+    const pointers = new Map();
+    let gesture;
+    const currentViewBox = () => parseViewBox(svg.getAttribute('viewBox'));
+    const fullViewBox = () => parseViewBox(svg.dataset.fullViewBox);
+    const startPan = point => { gesture = {kind: 'pan', point, viewBox: currentViewBox()}; };
+    const startPinch = () => {
+      const [a, b] = [...pointers.values()];
+      gesture = {kind: 'pinch', distance: Math.hypot(b.x - a.x, b.y - a.y),
+        midpoint: [(a.x + b.x) / 2, (a.y + b.y) / 2], viewBox: currentViewBox()};
+    };
+    svg.addEventListener('pointerdown', event => {
+      if (!phoneLandscape.matches || event.pointerType === 'mouse') return;
+      svg.setPointerCapture(event.pointerId);
+      pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+      if (pointers.size === 1) startPan(pointers.values().next().value);
+      else if (pointers.size === 2) startPinch();
+    });
+    svg.addEventListener('pointermove', event => {
+      if (!pointers.has(event.pointerId) || !phoneLandscape.matches) return;
+      pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+      const rect = svg.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      if (gesture?.kind === 'pinch' && pointers.size >= 2) {
+        const [a, b] = [...pointers.values()];
+        const distance = Math.hypot(b.x - a.x, b.y - a.y);
+        const anchor = [(gesture.midpoint[0] - rect.left) / rect.width,
+          (gesture.midpoint[1] - rect.top) / rect.height].map(value => Math.max(0, Math.min(1, value)));
+        setViewBox(svg, scaleViewBox(gesture.viewBox, fullViewBox(),
+          gesture.distance / Math.max(distance, 1), anchor));
+      } else if (gesture?.kind === 'pan' && pointers.size === 1) {
+        const point = pointers.values().next().value;
+        const [x, y, width, height] = gesture.viewBox;
+        setViewBox(svg, constrainViewBox([
+          x - (point.x - gesture.point.x) * width / rect.width,
+          y - (point.y - gesture.point.y) * height / rect.height,
+          width, height,
+        ], fullViewBox()));
+      }
+    });
+    const endPointer = event => {
+      pointers.delete(event.pointerId);
+      if (pointers.size === 1) startPan(pointers.values().next().value);
+      else if (!pointers.size) gesture = undefined;
+    };
+    svg.addEventListener('pointerup', endPointer);
+    svg.addEventListener('pointercancel', endPointer);
+  };
+  maps.forEach(addGestures);
+  const updateViewBoxes = () => {
+    if (!viewport.isConnected) return;
+    maps.forEach((svg, index) => {
+      const viewBox = phoneLandscape.matches && routeViewBox(model.sheets[index]);
+      svg.setAttribute('viewBox', viewBox ? viewBox.join(' ') : svg.dataset.fullViewBox);
+    });
+  };
+  updateViewBoxes();
+  phoneLandscape.addEventListener('change', updateViewBoxes);
 }

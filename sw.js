@@ -1,11 +1,11 @@
 // Bump VERSION whenever a deployed app-shell file changes.
-const VERSION = 'v0.2.83';
+const VERSION = 'v0.2.114';
 const BASE = new URL('./', self.location.href);
 const PREFIX = `nepean-navigator:${BASE.pathname}:`;
 const CACHE = PREFIX + VERSION;
 const HOME = new URL('index.html', BASE).href;
 const ASSETS = [
-  'index.html', 'app.js', 'install.js', 'routing.js', 'floor-map.js', 'route-map.js', 'data.js', 'style.css',
+  'index.html', 'app.js', 'install.js', 'routing.js', 'floor-map.js', 'route-map.js', 'data.js', 'hallway-paths.js', 'style.css',
   'manifest.webmanifest', 'icons/helmet-32.png', 'icons/helmet-192.png', 'icons/helmet-512.png',
   'public/nepean_infographic.png', 'public/share-qr.svg',
   'public/floor-0.svg', 'public/floor-1.svg', 'public/floor-2.svg', 'public/floor-3.svg',

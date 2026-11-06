@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {school} from '../data.js';
 import {graph, findPath, navigate, parseStart, parseRoom} from '../routing.js';
-import {floorPlans, clipFloorPolygon, pointAlong, roomMapPoint, hallwayPath, buildCompositeMap} from '../floor-map.js';
+import {floorPlans, clipFloorPolygon, pointAlong, roomMapPoint, hallwayPath, buildCompositeMap, sheetRoutePoints, routeViewBox, sheetMapViewBox, scaleViewBox} from '../floor-map.js';
 
 test('room interpolation follows low-to-high numbering along hallway length and bends', () => {
-  assert.deepEqual(roomMapPoint(parseStart('1201')), [212, 550]);
-  assert.deepEqual(roomMapPoint(parseStart('1212')), [554, 550]);
-  assert.deepEqual(roomMapPoint(parseStart('0401')), [569, 300]);
-  assert.deepEqual(roomMapPoint(parseStart('0412')), [569, 30]);
+  assert.deepEqual(roomMapPoint(parseStart('1201')), [220, 550]);
+  assert.deepEqual(roomMapPoint(parseStart('1212')), [543, 550]);
+  assert.deepEqual(roomMapPoint(parseStart('0401')), [568, 300]);
+  assert.deepEqual(roomMapPoint(parseStart('0412')), [568, 38]);
   assert.deepEqual(pointAlong([[0, 10], [0, 0], [20, 0]], .5), [5, 0]);
   assert.deepEqual(roomMapPoint(parseStart('N')), [572, 630]);
   assert.deepEqual(roomMapPoint(parseStart('2201')), [277, 570]);
@@ -17,23 +17,73 @@ test('room interpolation follows low-to-high numbering along hallway length and 
 });
 test('local paths turn only along traced hallways and never bridge missing geometry', () => {
   const path = hallwayPath(floorPlans['3-3'], [561, 550], [704, 370]);
-  assert.deepEqual(path, [[561, 550], [647, 550], [647, 370], [704, 370]]);
+  assert.deepEqual(path, [[561, 550], [561, 549], [646, 549], [647, 370], [693, 369], [704, 370]]);
   assert.equal(hallwayPath(floorPlans['2-0'], [277, 570], [474, 570]), null);
-  assert.equal(hallwayPath(floorPlans['2-2'], [300, 500], [400, 550]), null);
+  assert.deepEqual(hallwayPath(floorPlans['2-2'], [300, 500], [400, 550]), [[300, 500], [300, 550], [400, 550]]);
   const disconnected = {paths: [[[0, 0], [0, 5]], [[10, 0], [10, 5]]]};
   assert.equal(hallwayPath(disconnected, [0, 0], [10, 5]), null);
 });
 test('composites use appropriate drawings without user floor controls', () => {
   const route = navigate('2205', '3307');
   const map = buildCompositeMap(route);
-  assert.equal(map.sheets.length, 1);
-  assert.deepEqual(map.sections.map(section => [section.building, section.floor]), [[2, 3], [3, 3]]);
-  assert.deepEqual(map.sections[0].floors, [2, 3]);
+  assert.equal(map.sheets.length, 2);
+  assert.deepEqual(map.sections.map(section => [section.building, section.floor]), [[2, 2], [2, 3], [3, 3]]);
+  assert.deepEqual(map.sections[0].floors, [2]);
   assert.deepEqual(map.sections[0].stairs, new Set(['A']));
   const nearest = buildCompositeMap(navigate('1212', '2205'));
   assert.deepEqual(nearest.sections[0].stairs, new Set(['A']));
   const ground = buildCompositeMap(navigate('2205', '1306'));
   assert.deepEqual(ground.sections.map(section => section.floor), [2, 2, 1]);
+});
+test('phone view boxes contain every route and can un-pinch to every whole map', () => {
+  const buildingRooms = ['1203', '2205', '1305', '0407', '1509'];
+  const sources = [...Object.keys(school.entrances), ...buildingRooms];
+  let combinations = 0;
+  for (const start of sources) for (const end of buildingRooms) {
+    combinations++;
+    const label = `${start} → ${end}`;
+    const route = navigate(start, end);
+    assert.ok(route.path, `${label}: route is connected`);
+    assert.equal(route.path[0], parseStart(start).node, `${label}: route starts at its source`);
+    assert.equal(route.path.at(-1), parseRoom(end).node, `${label}: route reaches its destination`);
+    const map = buildCompositeMap(route);
+    assert.ok(map.sheets.length, `${label}: route has at least one map sheet`);
+    for (const sheet of map.sheets) {
+      const points = sheetRoutePoints(sheet);
+      const routeBox = routeViewBox(sheet);
+      const [x, y, width, height] = routeBox;
+      assert.ok(points.length, `${label}: map sheet has route geometry`);
+      for (const [pointX, pointY] of points) {
+        assert.ok(pointX >= x && pointX <= x + width, `${label}: route x-coordinate is visible`);
+        assert.ok(pointY >= y && pointY <= y + height, `${label}: route y-coordinate is visible`);
+      }
+      const fullBox = sheetMapViewBox(sheet);
+      const zoomOutFactor = Math.max(fullBox[2] / width, fullBox[3] / height) + 1;
+      assert.deepEqual(scaleViewBox(routeBox, fullBox, zoomOutFactor), fullBox,
+        `${label}: un-pinching can restore the whole map`);
+      let repeatedPinch = routeBox;
+      for (let gesture = 0; gesture < 4; gesture++) {
+        repeatedPinch = scaleViewBox(repeatedPinch, fullBox, 2);
+      }
+      assert.deepEqual(repeatedPinch, fullBox,
+        `${label}: repeated un-pinch gestures reach the whole map`);
+    }
+  }
+  assert.equal(combinations, 45);
+});
+test('rotated phone map keeps an explicit height and has no zoom controls', () => {
+  const style = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const renderer = readFileSync(new URL('../route-map.js', import.meta.url), 'utf8');
+  assert.match(style, /#route-map \{height: calc\(100dvh - env\(safe-area-inset-top\) - env\(safe-area-inset-bottom\) - 12px\); min-height: 0;/);
+  assert.match(style, /\.map-viewport \{height: 100%; min-height: 0; max-height: 100%;/);
+  assert.match(style, /#route-map \.floor-composite \{display: flex; flex-direction: column; height: 100%;\}/);
+  assert.match(style, /#route-map \.floor-route-map \{[^}]*touch-action: none;/);
+  assert.match(renderer, /addEventListener\('pointerdown'/);
+  assert.match(renderer, /addEventListener\('pointermove'/);
+  assert.match(renderer, /class: 'floor-entrance-artwork'/);
+  assert.match(renderer, /entranceArtwork/);
+  assert.doesNotMatch(page, /map-controls|data-map-action|Fit route|Whole map/);
 });
 test('different geometries and repeated building visits are separated in route order', () => {
   const path = ['3-3', '2-3', '2-2', '3-1', '3-2'];
@@ -50,7 +100,7 @@ test('different geometries and repeated building visits are separated in route o
     }
   }
   const art = buildCompositeMap(navigate('1101', '3105'));
-  assert.deepEqual(art.sections.map(section => section.floor), [1, 3]);
+  assert.deepEqual(art.sections.map(section => section.floor), [1, 2, 3]);
 });
 test('every mapped pair retains its graph path and all drawn hallway geometry is supported', () => {
   for (const start of graph.keys()) for (const end of graph.keys()) {
@@ -96,6 +146,8 @@ test('floor images share a canvas and are explicitly staged and cached', () => {
   assert.equal(new Set(boxes).size, 1);
   assert.ok(worker.includes("'floor-map.js'"));
   assert.ok(workflow.includes('floor-map.js'));
+  assert.ok(worker.includes("'hallway-paths.js'"));
+  assert.ok(workflow.includes('hallway-paths.js'));
 });
 
 test('every active building connection has traced map ports at both endpoints', () => {
@@ -108,6 +160,21 @@ test('every active building connection has traced map ports at both endpoints', 
       assert.ok(hallwayPath(plan, port, port), `Map port off the traced hall: ${node} → ${neighbor}`);
     }
   }
+});
+test('Gym-to-stairwell-J corridor follows generated hallway centerlines', () => {
+  const gymToJ = hallwayPath(floorPlans['5-1'], [392.5, 325], [548, 300]);
+  assert.deepEqual(gymToJ.slice(0, 4), [[392.5, 325], [393, 334], [393, 344], [527, 344]]);
+  assert.ok(Math.abs(gymToJ.at(-2)[0] - 528) < 1);
+  assert.ok(Math.abs(gymToJ.at(-2)[1] - 300) < 1);
+  assert.deepEqual(gymToJ.at(-1), [548, 300]);
+  for (const [node, other] of [['5-1', 4], ['4-1', 5]]) {
+    const point = floorPlans[node].ports[other];
+    assert.ok(point);
+    assert.ok(hallwayPath(floorPlans[node], point, point));
+  }
+  const route = buildCompositeMap(navigate('1509', '1401'));
+  assert.deepEqual(route.sections.flatMap(section => section.nodes), ['5-1', '4-1']);
+  assert.ok(route.sections.every(section => section.lines.every(Boolean)));
 });
 test('updated Main second-floor links draw complete routes in either direction', () => {
   for (const destination of ['2103', '2307']) {
@@ -124,41 +191,37 @@ test('updated Main second-floor links draw complete routes in either direction',
   }
 });
 
-test('2407 to 3105 uses one composite with a floor split at staircase E', () => {
+test('2407 to 3105 draws each source floor at staircase E', () => {
   const route = navigate('2407', '3105');
   const map = buildCompositeMap(route);
-  assert.equal(map.sheets.length, 1);
+  assert.equal(map.sheets.length, 2);
   assert.deepEqual(map.sections.flatMap(section => section.nodes), route.path);
   const art = map.sections.filter(section => section.building === 1);
   assert.equal(art.length, 2);
-  assert.equal(art[1].split.fromFloor, 2);
-  assert.equal(art[1].split.toFloor, 3);
-  assert.equal(art[1].split.staircase, 'E');
-  assert.deepEqual(art[1].split.point, art[0].to);
-  assert.deepEqual(art[1].offset, [0, -45]);
-  assert.deepEqual(art[1].from.map((value, axis) => value + art[1].offset[axis]), art[0].to);
   assert.ok(art[0].stairs.has('E') && art[1].stairs.has('E'));
-  assert.equal(art[0].cuts[0].sign, 1);
-  assert.equal(art[1].cuts[0].sign, -1);
+  assert.ok(art.every(section => section.lines.every(Boolean)));
 });
-test('hallway floor changes keep their image split without a stairwell marker', () => {
+test('hallway floor changes use their separate source drawings without a stairwell marker', () => {
   for (const [start, end] of [['2205', '1306'], ['1306', '2205']]) {
     const route = navigate(start, end);
     const map = buildCompositeMap(route);
-    const hallway = map.sections.find(section => section.building === 3 && section.split);
-    assert.ok(hallway, 'The floor drawings still join at the hallway steps');
-    assert.equal(hallway.split.staircase, undefined);
+    const hallway = map.sections.filter(section => section.building === 3);
+    assert.deepEqual(hallway.map(section => section.floor).sort(), [1, 2]);
+    assert.ok(hallway.every(section => section.split === undefined));
+    assert.equal(map.sheets.length, 2);
   }
 });
-test('stairwell clipping preserves the correct half of an image', () => {
+test('stairwell clipping preserves the correct half of an image and separates unmatched floors', () => {
   const polygon = [[0, 0], [10, 0], [10, 10], [0, 10]];
   for (const sign of [-1, 1]) {
     const result = clipFloorPolygon(polygon, {point: [5, 5], normal: [1, 0], sign});
     assert.ok(result.length >= 4);
     assert.ok(result.every(point => (point[0] - 5) * sign >= 0));
   }
-  for (const [start, end] of [['1101', '3105'], ['3105', '1101'], ['2407', '3105'], ['3105', '2407']]) {
+  for (const [start, end, expectedSheets] of [
+    ['1101', '3105', 3], ['3105', '1101', 3], ['2407', '3105', 2], ['3105', '2407', 2],
+  ]) {
     const route = navigate(start, end);
-    assert.equal(buildCompositeMap(route).sheets.length, 1);
+    assert.equal(buildCompositeMap(route).sheets.length, expectedSheets);
   }
 });

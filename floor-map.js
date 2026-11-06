@@ -3,96 +3,10 @@
 import {school} from './data.js';
 import {floorName, staircaseChoices, mainStairwellVisit} from './routing.js';
 
-export const bounds = {
-  1: [25, 335, 168, 379],
-  2: [192, 465, 370, 230],
-  3: [549, 332, 188, 380],
-  4: [499, 27, 141, 310],
-  5: [248, 136, 200, 330],
-};
-const musicClip = '550,332 707,332 707,407 735,407 735,710 615,710 615,620 561,620 561,408 550,408';
-const mainHall = [[212, 550], [277, 550], [381, 550], [474, 550], [554, 550]];
-const scienceHall = [[569, 300], [569, 30]];
-const mainBranches = [[[277, 550], [277, 570]], [[474, 550], [474, 570]]];
-const main = floor => ({
-  signature: 'main-upper',
-  primary: mainHall,
-  paths: [mainHall, ...mainBranches, ...(floor === 1 ? [[[381, 550], [381, 465]]] : []),
-    ...(floor === 2 ? [[[277, 570], [277, 675]], [[474, 570], [474, 675]]] : [])],
-  stairs: {A: [474, 570], B: [277, 570]},
-  ports: {1: [212, 550], 3: [554, 550], ...(floor === 1 ? {5: [381, 465]} : {})},
-});
-
-export const floorPlans = {
-  '1-1': {
-    signature: 'art-ground',
-    primary: [[181, 627], [181, 520]],
-    paths: [[[181, 640], [181, 627], [181, 550], [181, 520]]],
-    stairs: {E: [181, 550], hallway: [181, 520]},
-    ports: {2: [181, 550]},
-  },
-  '1-2': {
-    signature: 'art-upper',
-    primary: [[28, 399], [181, 399]],
-    paths: [[[28, 399], [181, 399], [181, 505], [181, 550], [181, 627], [181, 640]]],
-    stairs: {E: [181, 505], hallway: [181, 520]},
-    ports: {2: [181, 550]},
-  },
-  '1-3': {
-    signature: 'english',
-    primary: [[28, 550], [181, 550]],
-    paths: [[[28, 550], [181, 550], [192, 550]]],
-    stairs: {E: [181, 550]},
-    ports: {2: [192, 550]},
-  },
-  // The basement outline exists, but no Main hallway was drawn. Do not invent one.
-  '2-0': {
-    signature: 'main-basement',
-    primary: null,
-    paths: [],
-    stairs: {},
-    ports: {},
-  },
-  '2-1': main(1), '2-2': main(2), '2-3': main(3),
-  '3-1': {
-    signature: 'auditorium',
-    primary: [[569, 504], [569, 340]],
-    paths: [[[569, 630], [569, 550], [569, 504], [569, 340]]],
-    stairs: {hallway: [569, 480]},
-    ports: {2: [569, 550], 4: [569, 340]},
-  },
-  '3-2': {
-    signature: 'music-upper',
-    primary: [[572, 617], [572, 408], [569, 408], [569, 340]],
-    paths: [[[572, 630], [572, 617], [572, 480], [572, 408], [569, 408], [569, 340]]],
-    stairs: {hallway: [572, 480]},
-    ports: {2: [572, 550], 4: [569, 340]},
-  },
-  '3-3': {
-    signature: 'auditorium-top',
-    primary: [[561, 550], [647, 550], [647, 370], [704, 370]],
-    paths: [[[561, 550], [647, 550], [647, 370], [704, 370]]],
-    stairs: {},
-    ports: {2: [561, 550]},
-  },
-  ...Object.fromEntries([0, 1, 2].map(floor => [`4-${floor}`, {
-    signature: 'science',
-    primary: scienceHall,
-    paths: [scienceHall, [[548, 300], [569, 300]]],
-    stairs: {J: [548, 300]},
-    ports: {3: [569, 300]},
-  }])),
-  '5-1': {
-    signature: 'gym',
-    primary: null,
-    paths: [[[381, 465], [381, 325]]],
-    stairs: {},
-    ports: {2: [381, 465]},
-    approach: [381, 325],
-  },
-};
-const entrancePoints = {A: [474, 675], B: [277, 675], C: [181, 640], N: [572, 630]};
-export const roomApproaches = {'2201': [277, 570], '1305': [569, 504], '1509': [381, 325]};
+export const bounds = school.hallwayNetwork.buildingBounds;
+export const floorPlans = school.hallwayNetwork.floors;
+const entrancePoints = school.hallwayNetwork.entrances;
+export const roomApproaches = school.hallwayNetwork.namedApproaches;
 
 export function pointAlong(points, fraction) {
   const lengths = points.slice(1).map((point, i) => Math.hypot(point[0] - points[i][0], point[1] - points[i][1]));
@@ -116,42 +30,71 @@ export function roomMapPoint(room) {
 }
 const keyOf = point => point.map(value => value.toFixed(5)).join(',');
 const onSegment = (point, a, b) => Math.abs(Math.hypot(point[0] - a[0], point[1] - a[1]) + Math.hypot(point[0] - b[0], point[1] - b[1]) - Math.hypot(a[0] - b[0], a[1] - b[1])) < 0.001;
+function projectToSegments(point, segments) {
+  const candidates = new Map();
+  for (const [a, b] of segments) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], lengthSquared = dx * dx + dy * dy;
+    const t = lengthSquared ? Math.max(0, Math.min(1, ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / lengthSquared)) : 0;
+    const candidate = [a[0] + t * dx, a[1] + t * dy];
+    const distance = Math.hypot(point[0] - candidate[0], point[1] - candidate[1]);
+    if (distance <= 100) {
+      const key = keyOf(candidate), previous = candidates.get(key);
+      if (!previous || distance < previous.distance) candidates.set(key, {point: candidate, distance});
+    }
+  }
+  const ordered = [...candidates.values()].sort((a, b) => a.distance - b.distance);
+  return ordered[0]?.distance < .001 ? ordered.slice(0, 1) : ordered.slice(0, 12);
+}
 // Follow traced segments only. Rectangle overlap is deliberately irrelevant here.
 export function hallwayPath(plan, from, to) {
   if (!from || !to || !plan) return null;
-  const segments = plan.paths.flatMap(points => points.slice(1).map((point, i) => [points[i], point]));
-  const points = new Map([...segments.flat(), from, to].map(point => [keyOf(point), point]));
-  const graph = new Map([...points.keys()].map(key => [key, new Map()]));
-  for (const [a, b] of segments) {
-    const nodes = [...points.values()].filter(point => onSegment(point, a, b))
-      .sort((p, q) => Math.hypot(p[0] - a[0], p[1] - a[1]) - Math.hypot(q[0] - a[0], q[1] - a[1]));
-    for (let i = 1; i < nodes.length; i++) {
-      const previous = keyOf(nodes[i - 1]), next = keyOf(nodes[i]);
-      const distance = Math.hypot(nodes[i][0] - nodes[i - 1][0], nodes[i][1] - nodes[i - 1][1]);
-      graph.get(previous).set(next, distance); graph.get(next).set(previous, distance);
+  const originalSegments = plan.paths.flatMap(points => points.slice(1).map((point, i) => [points[i], point]));
+  const starts = projectToSegments(from, originalSegments), ends = projectToSegments(to, originalSegments);
+  if (!starts.length || !ends.length) return null;
+  let bestPath = null, bestLength = Infinity;
+  for (const startCandidate of starts) for (const endCandidate of ends) {
+    const points = new Map([...originalSegments.flat(), startCandidate.point, endCandidate.point].map(point => [keyOf(point), point]));
+    const graph = new Map([...points.keys()].map(key => [key, new Map()]));
+    for (const [a, b] of originalSegments) {
+      const nodes = [...points.values()].filter(point => onSegment(point, a, b))
+        .sort((p, q) => Math.hypot(p[0] - a[0], p[1] - a[1]) - Math.hypot(q[0] - a[0], q[1] - a[1]));
+      for (let i = 1; i < nodes.length; i++) {
+        const previous = keyOf(nodes[i - 1]), next = keyOf(nodes[i]);
+        const distance = Math.hypot(nodes[i][0] - nodes[i - 1][0], nodes[i][1] - nodes[i - 1][1]);
+        graph.get(previous).set(next, distance); graph.get(next).set(previous, distance);
+      }
+    }
+    const start = keyOf(startCandidate.point), end = keyOf(endCandidate.point);
+    const distances = new Map([[start, 0]]), parents = new Map(), pending = new Set(graph.keys());
+    while (pending.size) {
+      let node;
+      for (const candidate of pending) {
+        if (node === undefined || (distances.get(candidate) ?? Infinity) < (distances.get(node) ?? Infinity)) node = candidate;
+      }
+      if (!distances.has(node)) break;
+      pending.delete(node);
+      if (node === end) {
+        const score = distances.get(end) + (startCandidate.distance + endCandidate.distance) * 5;
+        if (score < bestLength) {
+          const path = [];
+          for (let cursor = end; cursor !== undefined; cursor = parents.get(cursor)) path.push(points.get(cursor));
+          path.reverse();
+          bestPath = [
+            ...(keyOf(from) === keyOf(path[0]) ? [] : [from]),
+            ...path,
+            ...(keyOf(to) === keyOf(path.at(-1)) ? [] : [to]),
+          ];
+          bestLength = score;
+        }
+        break;
+      }
+      for (const [next, distance] of graph.get(node)) {
+        const candidate = distances.get(node) + distance;
+        if (candidate < (distances.get(next) ?? Infinity)) {distances.set(next, candidate); parents.set(next, node);}
+      }
     }
   }
-  const start = keyOf(from), end = keyOf(to);
-  if (!segments.some(([a, b]) => onSegment(from, a, b)) || !segments.some(([a, b]) => onSegment(to, a, b))) return null;
-  const distances = new Map([[start, 0]]), parents = new Map(), pending = new Set(graph.keys());
-  while (pending.size) {
-    let node;
-    for (const candidate of pending) {
-      if (node === undefined || (distances.get(candidate) ?? Infinity) < (distances.get(node) ?? Infinity)) node = candidate;
-    }
-    if (!distances.has(node)) break;
-    pending.delete(node);
-    if (node === end) {
-      const path = [];
-      for (let cursor = end; cursor !== undefined; cursor = parents.get(cursor)) path.push(points.get(cursor));
-      return path.reverse();
-    }
-    for (const [next, distance] of graph.get(node)) {
-      const candidate = distances.get(node) + distance;
-      if (candidate < (distances.get(next) ?? Infinity)) {distances.set(next, candidate); parents.set(next, node);}
-    }
-  }
-  return null;
+  return bestPath;
 }
 
 function stairsForEdge(path, index, start, end) {
@@ -232,11 +175,87 @@ export function clipFloorPolygon(polygon, cut) {
 }
 export function sectionPolygon(section) {
   const [x, y, width, height] = bounds[section.building];
-  let polygon = section.building === 3 ? musicClip.split(' ').map(point => point.split(',').map(Number))
+  const clip = school.hallwayNetwork.buildingClips[section.building];
+  let polygon = clip ? clip.split(' ').map(point => point.split(',').map(Number))
     : [[x, y], [x + width, y], [x + width, y + height], [x, y + height]];
   polygon = polygon.map(point => shifted(point, section.offset));
   for (const cut of section.cuts ?? []) polygon = clipFloorPolygon(polygon, cut);
   return polygon.map(point => difference(point, section.offset ?? [0, 0]));
+}
+
+export function sheetRoutePoints(sheet) {
+  const points = [];
+  for (let i = 0; i < sheet.sections.length; i++) {
+    const section = sheet.sections[i];
+    for (const line of section.lines) {
+      if (line) points.push(...line.map(point => shifted(point, section.offset)));
+    }
+    for (const endpoint of [section.from, section.to]) {
+      if (endpoint) points.push(shifted(endpoint, section.offset));
+    }
+    for (const movement of section.movements) {
+      const point = section.plan?.stairs[movement.staircase];
+      if (point) points.push(shifted(point, section.offset));
+    }
+    const next = sheet.sections[i + 1];
+    if (next && section.to && next.from) {
+      const a = shifted(section.to, section.offset), b = shifted(next.from, next.offset);
+      points.push(a, [b[0], a[1]], b);
+    }
+  }
+  return points;
+}
+
+export function routeViewBox(sheet) {
+  const points = sheetRoutePoints(sheet);
+  if (!points.length) return null;
+  const minX = Math.min(...points.map(point => point[0]));
+  const maxX = Math.max(...points.map(point => point[0]));
+  const minY = Math.min(...points.map(point => point[1]));
+  const maxY = Math.max(...points.map(point => point[1]));
+  // Horizontal room labels can be wider than the route itself. These margins
+  // keep labels, arrowheads, and stair markers visible around every route.
+  const paddingX = 110, paddingY = 48;
+  return [minX - paddingX, minY - paddingY,
+    Math.max(maxX - minX, 1) + paddingX * 2,
+    Math.max(maxY - minY, 1) + paddingY * 2];
+}
+
+export function sheetMapViewBox(sheet) {
+  const boxes = [[0, 0, 773, 742], ...sheet.sections.map(section => {
+    const box = bounds[section.building];
+    return [...shifted(box.slice(0, 2), section.offset), ...box.slice(2)];
+  })];
+  const x = Math.min(...boxes.map(box => box[0])) - 12;
+  const y = Math.min(...boxes.map(box => box[1])) - 24;
+  const width = Math.max(...boxes.map(box => box[0] + box[2])) - x + 12;
+  const height = Math.max(...boxes.map(box => box[1] + box[3])) - y + 12;
+  return [x, y, width, height];
+}
+
+export function constrainViewBox(viewBox, fullViewBox) {
+  const [fullX, fullY, fullWidth, fullHeight] = fullViewBox;
+  let [x, y, width, height] = viewBox;
+  if (width <= fullWidth) x = Math.max(fullX, Math.min(x, fullX + fullWidth - width));
+  else x = fullX + (fullWidth - width) / 2;
+  if (height <= fullHeight) y = Math.max(fullY, Math.min(y, fullY + fullHeight - height));
+  else y = fullY + (fullHeight - height) / 2;
+  return [x, y, width, height];
+}
+
+export function scaleViewBox(viewBox, fullViewBox, factor, anchor = [.5, .5]) {
+  const [x, y, width, height] = viewBox;
+  const [, , fullWidth, fullHeight] = fullViewBox;
+  const nextWidth = Math.max(fullWidth / 8, width * factor);
+  const nextHeight = Math.max(fullHeight / 8, height * factor);
+  if (nextWidth >= fullWidth && nextHeight >= fullHeight) return [...fullViewBox];
+  const [anchorX, anchorY] = anchor;
+  return constrainViewBox([
+    x + width * anchorX - nextWidth * anchorX,
+    y + height * anchorY - nextHeight * anchorY,
+    nextWidth,
+    nextHeight,
+  ], fullViewBox);
 }
 
 const contains = (candidate, lines) => lines.every(line => line && line.every(point =>
