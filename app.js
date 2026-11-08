@@ -18,11 +18,6 @@ routeMapPanel.addEventListener('toggle', () => {
 phoneLandscape.addEventListener('change', () => {
   if (!routeMapPanel.hidden) routeMapPanel.open = phoneLandscape.matches;
 });
-const numberExplanation = document.querySelector('#number-explanation');
-numberExplanation.addEventListener('click', event => {
-  if (!event.target.closest('summary')) numberExplanation.open = false;
-});
-const numberCards = document.querySelector('#number-cards');
 const exampleNumberCard = document.querySelector('#example-number-card');
 const numberCardTemplate = document.querySelector('#number-card-template');
 function alignNumberArrows() {
@@ -42,18 +37,14 @@ function alignNumberArrows() {
   }
 }
 const numberCardObserver = new ResizeObserver(alignNumberArrows);
-numberCardObserver.observe(numberCards);
 numberCardObserver.observe(exampleNumberCard);
 
+const numberGroups = number => [floorName(Number(number[0])), school.buildings[Number(number[1])].name, `Room ${number.slice(2)}`];
 function explainRoomNumber(number, label) {
   const card = numberCardTemplate.content.firstElementChild.cloneNode(true);
   const name = school.knownRooms[number]?.name ?? `Room ${number}`;
   card.querySelector('h3').textContent = `${label} \u00b7 ${name}`;
-  const groups = [
-    floorName(Number(number[0])),
-    school.buildings[Number(number[1])].name,
-    `Room ${number.slice(2)}`,
-  ];
+  const groups = numberGroups(number);
   card.querySelector('.number-row > .floor-group').textContent = number[0];
   card.querySelector('.number-row > .building-group').textContent = number[1];
   card.querySelectorAll('.number-row > .room-group span').forEach((digit, index) => { digit.textContent = number[index + 2]; });
@@ -69,16 +60,82 @@ function explainRoomNumber(number, label) {
   return card;
 }
 
-function renderNumberExplanation({start, end, path}) {
-  const cards = [];
-  if (!start.entrance) cards.push(explainRoomNumber(start.number, 'Starting room'));
-  cards.push(explainRoomNumber(end.number, 'Destination'));
-  numberCards.replaceChildren(...cards);
-  numberExplanation.hidden = !path;
-  numberExplanation.open = false;
-}
-
 exampleNumberCard.replaceChildren(explainRoomNumber('3204', 'Example'));
+
+const numberIntro = document.querySelector('#number-intro');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let closeNumberIntro = () => {};
+// Introduce the destination's floor, building, and room digits over the drawn route; any tap or key closes it.
+function playNumberIntro(number) {
+  closeNumberIntro();
+  const name = school.knownRooms[number]?.name;
+  numberIntro.querySelector('.intro-name').textContent = name ? `Destination \u00b7 ${name}` : 'Destination';
+  const row = numberIntro.querySelector('.intro-number');
+  const digits = [...row.children];
+  digits[0].textContent = number[0];
+  digits[1].textContent = number[1];
+  digits[2].querySelectorAll('span').forEach((digit, index) => { digit.textContent = number[index + 2]; });
+  const captions = [...numberIntro.querySelectorAll('.intro-caption')];
+  [...numberGroups(number).slice(0, 2), number.slice(2)].forEach((value, index) => { captions[index].querySelector('.number-value').textContent = value; });
+  const animations = [];
+  let timer;
+  const close = () => {
+    for (const animation of animations) animation.cancel();
+    for (const group of digits) group.style.zIndex = '';
+    clearTimeout(timer);
+    numberIntro.hidden = true;
+    numberIntro.removeEventListener('click', close);
+    document.removeEventListener('keydown', onKey, true);
+    closeNumberIntro = () => {};
+  };
+  // A held key repeats the one that submitted the form; modifier keys alone are not a request to skip.
+  const onKey = event => {
+    if (event.repeat || ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
+    event.preventDefault();
+    close();
+  };
+  closeNumberIntro = close;
+  numberIntro.addEventListener('click', close);
+  document.addEventListener('keydown', onKey, true);
+  numberIntro.hidden = false;
+  if (reducedMotion.matches) {
+    timer = setTimeout(close, 6000);
+    return;
+  }
+  const run = (element, keyframes, options) => {
+    const animation = element.animate(keyframes, {fill: 'forwards', ...options});
+    animations.push(animation);
+    return animation.finished;
+  };
+  const centre = element => {
+    const {left, width} = element.getBoundingClientRect();
+    return left + width / 2;
+  };
+  (async () => {
+    await run(numberIntro, [{opacity: 0}, {opacity: 1}], {duration: 200});
+    await run(row, [{transform: 'scale(.3)', opacity: 0}, {transform: 'scale(1.6)', opacity: 1, offset: .4}, {transform: 'scale(1.6)'}], {duration: 900, easing: 'ease-out'});
+    await run(row, [{transform: 'scale(1.6)'}, {transform: 'none'}], {duration: 350, easing: 'ease-in-out'});
+    for (const [index, group] of digits.entries()) {
+      // Move each group to the middle so it covers the other digits while it is explained.
+      const out = `translateX(${centre(row) - centre(group)}px) scale(${index === 2 ? 1.5 : 2})`;
+      group.style.zIndex = 1;
+      await Promise.all([
+        run(group, [{transform: 'none'}, {transform: `${out} scale(1.12)`, offset: .7}, {transform: out}], {duration: 350, easing: 'ease-out'}),
+        run(captions[index], [{opacity: 0, transform: 'translateY(-.5rem)'}, {opacity: 1, transform: 'none'}], {duration: 250, delay: 100}),
+      ]);
+      await Promise.all([
+        run(group, [{transform: out}, {transform: 'none'}], {duration: 300, delay: 700, easing: 'cubic-bezier(.3, 1.5, .6, 1)'}),
+        run(captions[index], [{opacity: 1}, {opacity: 0}], {duration: 200, delay: 700}),
+      ]);
+      group.style.zIndex = '';
+    }
+    await run(numberIntro, [{opacity: 1}, {opacity: 0}], {duration: 300});
+    close();
+  })().catch(error => {
+    // Skipping cancels the running animations.
+    if (error.name !== 'AbortError') throw error;
+  });
+}
 
 const knownRooms = document.querySelector('#known-rooms');
 const startingRoomLabel = form.querySelector('label[for="start-room"]');
@@ -212,7 +269,6 @@ form.addEventListener('submit', (event) => {
     const route = navigate(selectedEntrance ?? form.elements.start.value, form.elements.end.value);
     if (!selectedEntrance) form.elements.start.value = route.start.number;
     form.elements.end.value = route.end.number;
-    renderNumberExplanation(route);
     steps.replaceChildren(...(route.path ? route.steps.slice(1) : route.steps).map(text => {
       const item = document.createElement('li');
       item.textContent = text;
@@ -230,6 +286,7 @@ form.addEventListener('submit', (event) => {
     document.body.classList.toggle('showing-route', Boolean(route.path));
     title.focus({preventScroll: true});
     result.scrollIntoView({block: 'start', behavior: 'instant'});
+    if (route.path) playNumberIntro(route.end.number);
   } catch (exception) {
     error.textContent = exception.message;
     error.hidden = false;

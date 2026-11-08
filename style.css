@@ -102,9 +102,6 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 }
 
 /* Room-number explanation and transition animation. */
-#number-explanation {margin: 1.5rem 0 0; padding-top: .75rem; border-top: 1px solid var(--border); cursor: pointer;}
-#number-explanation > summary {font-size: .88rem; color: var(--muted);}
-#number-cards {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding-top: .5rem;}
 .number-card {min-width: 0; padding: .75rem; background: #f7f8fa; border-radius: .6rem;}
 .number-card h3 {font-size: .85rem; margin: 0 0 .75rem; font-weight: 650;}
 .number-groups {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; text-align: center;}
@@ -125,10 +122,22 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg {animation: number-reveal .45s ease-out var(--delay) both;}
 
 @keyframes number-reveal {from {opacity: 0; transform: translateY(-.4rem);} to {opacity: 1; transform: translateY(0);}}
-@media (max-width: 480px) {#number-cards {grid-template-columns: 1fr;}}
+/* The destination's digits are introduced over the page before its directions. */
+#number-intro {position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.75rem; padding: 1rem; background: rgb(245 246 248 / .97); text-align: center; cursor: pointer;}
+#number-intro[hidden] {display: none;}
+.intro-name {margin: 0; font-size: 1.3rem; font-weight: 700;}
+.intro-number {display: grid; grid-template-columns: repeat(4, 3.5rem);}
+#number-intro .number-digits {position: relative; font-size: 3rem; animation: none;}
+.intro-captions {display: grid; min-height: 4.5rem;}
+.intro-caption {grid-area: 1 / 1; display: flex; flex-direction: column; margin: 0; opacity: 0; color: var(--group-color);}
+.intro-caption .number-key {font-size: 1.1rem;}
+.intro-caption .number-value {font-size: 1.5rem; font-weight: 600;}
+.intro-skip {margin: 0; font-size: .85rem; color: var(--muted);}
 /* Honour the user's motion preference without hiding explanation content. */
 @media (prefers-reduced-motion: reduce) {
   .showing-route .number-group, .showing-route .number-digits, .showing-route .number-arrows > svg, .showing-route #steps {animation: none;}
+  .intro-captions {gap: .75rem;}
+  .intro-caption {grid-area: auto; opacity: 1;}
 }
 
 /* Browser users can expand the map; phones use the map in landscape. */
@@ -146,7 +155,7 @@ body:has(.info-dialog[open]) {overflow: hidden;}
   #route-map-panel {display: none;}
 }
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 600px) {
-  header, footer, .route-header, #route-summary, #map-orientation-hint, .directions-label, #steps, #number-explanation {display: none;}
+  header, footer, .route-header, #route-summary, #map-orientation-hint, .directions-label, #steps {display: none;}
   main {max-width: none; margin: 0; padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));}
   #result {padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent;}
   #route-map-panel {display: block; height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px); margin: 0; border: 1px solid #d5d9e0; border-radius: .8rem; background: white; box-shadow: 0 2px 10px rgb(24 31 44 / .12); overflow: hidden;}

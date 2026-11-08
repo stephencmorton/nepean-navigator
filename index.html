@@ -83,11 +83,21 @@
       </details>
       <h3 class="directions-label">Walking directions</h3>
       <ol id="steps"></ol>
-      <details id="number-explanation">
-        <summary>How to read your room numbers</summary>
-        <div id="number-cards"></div>
-      </details>
     </section>
+    <div id="number-intro" aria-hidden="true" hidden>
+      <p class="intro-name"></p>
+      <div class="intro-number">
+        <strong class="number-digits floor-group"></strong>
+        <strong class="number-digits building-group"></strong>
+        <strong class="number-digits room-group"><span></span><span></span></strong>
+      </div>
+      <div class="intro-captions">
+        <p class="intro-caption floor-group"><span class="number-key">Floor</span><span class="number-value"></span></p>
+        <p class="intro-caption building-group"><span class="number-key">Building</span><span class="number-value"></span></p>
+        <p class="intro-caption room-group"><span class="number-key">Room</span><span class="number-value"></span></p>
+      </div>
+      <p class="intro-skip">Tap or press a key to skip</p>
+    </div>
     <footer>
       <div id="install-control" hidden>
         <button id="install-app" class="secondary" type="button" aria-expanded="false" aria-controls="install-help" aria-describedby="install-description">Save app for offline use</button>
