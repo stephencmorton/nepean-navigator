@@ -751,6 +751,7 @@ def extract_geometry(source: Path) -> dict[str, Any]:
         per_floor[floor] = layer_features(layer, floor, vb, source)
 
     footprints: dict[str, list[tuple[float, ...]]] = {}
+    outlines: dict[str, list[list[float]]] = {}
     present: dict[int, set[str]] = {}
     for floor, features in per_floor.items():
         for identifier, feature in features.items():
@@ -759,6 +760,7 @@ def extract_geometry(source: Path) -> dict[str, Any]:
                 rect = tuple(round(value, 1) for value in bbox(feature["points"]))
                 if rect not in footprints.setdefault(match.group(1), []):
                     footprints[match.group(1)].append(rect)
+                outlines.setdefault(f"{match.group(1)}-{floor}", []).append(list(rect))
                 present.setdefault(floor, set()).add(match.group(1))
 
     floors: dict[str, dict[str, Any]] = {}
@@ -771,7 +773,8 @@ def extract_geometry(source: Path) -> dict[str, Any]:
         if unassigned:
             warnings.append(f"floor {floor}: {unassigned:.0f} units of hallway are more than {MAX_GAP} from any building")
         for building in sorted(buildings):
-            floors[f"{building}-{floor}"] = {"paths": pieces.get(building, []), "stairs": {}, "steps": {}, "ports": {}}
+            floors[f"{building}-{floor}"] = {"outline": sorted(outlines[f"{building}-{floor}"]), "paths": pieces.get(building, []),
+                                             "stairs": {}, "steps": {}, "ports": {}}
         for identifier, feature in sorted(features.items()):
             kind, _, rest = identifier.partition("-")
             if kind == "building" or not feature["points"]:

@@ -28,7 +28,7 @@ function renderFloorComposite(route) {
     const context = Object.keys(footprints).map(Number)
       .filter(building => !sheet.sections.some(section => section.building === building))
       .map(building => ({building, floor: 1}));
-    const layers = [...context, ...sheet.sections];
+    const layers = [...context, ...sheet.sections.filter(section => section.under), ...sheet.sections.filter(section => !section.under)];
     const [x, y, width, height] = sheetMapViewBox(sheet);
     const svg = element('svg', {viewBox: `${x} ${y} ${width} ${height}`, preserveAspectRatio: 'xMidYMid meet', role: 'img', class: 'floor-route-map', 'aria-labelledby': `floor-map-title-${sheetIndex} floor-map-desc-${sheetIndex}`});
     svg.append(element('title', {id: `floor-map-title-${sheetIndex}`}, 'Route across floor plans'));
@@ -82,7 +82,8 @@ function renderFloorComposite(route) {
       for (const cue of section.movements) {
         const point = section.plan?.stairs[cue.staircase];
         if (point) {
-          const key = `${section.building}-${point.join(',')}-${cue.direction}`;
+          // Landings on adjacent floors can be drawn a few units apart; mark each stairwell once.
+          const key = `${section.building}-${cue.staircase}-${cue.direction}`;
           if (!shownStairs.has(key)) {
             const marker = element('g', {transform: `translate(${point.join(' ')})`, class: 'floor-stair-cue'});
             marker.append(element('title', {}, cue.description));

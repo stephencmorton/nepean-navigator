@@ -212,10 +212,10 @@ test('updated Main second-floor links draw complete routes in either direction',
   }
 });
 
-test('2105 to 3105 draws each source floor at staircase E', () => {
+test('2105 to 3105 draws each source floor at staircase E in one view', () => {
   const route = navigate('2105', '3105');
   const map = buildCompositeMap(route);
-  assert.equal(map.sheets.length, 2);
+  assert.equal(map.sheets.length, 1);
   assert.deepEqual(map.sections.flatMap(section => section.nodes), route.path);
   const art = map.sections.filter(section => section.building === 1);
   assert.equal(art.length, 2);
@@ -231,7 +231,7 @@ test('hallway floor changes use their separate source drawings without a stairwe
     assert.ok(hallway.every(section => !section.split?.staircase && !section.movements.length));
   }
 });
-test('stairwell clipping preserves the correct half of an image and separates unmatched floors', () => {
+test('stairwell clipping preserves the correct half of an image, and only doubling back needs another view', () => {
   const polygon = [[0, 0], [10, 0], [10, 10], [0, 10]];
   for (const sign of [-1, 1]) {
     const result = clipFloorPolygon(polygon, {point: [5, 5], normal: [1, 0], sign});
@@ -239,7 +239,9 @@ test('stairwell clipping preserves the correct half of an image and separates un
     assert.ok(result.every(point => (point[0] - 5) * sign >= 0));
   }
   for (const [start, end, expectedSheets] of [
-    ['1101', '3105', 3], ['3105', '1101', 3], ['2407', '3105', 2], ['3105', '2407', 2],
+    ['1101', '3105', 1], ['3105', '1101', 1], ['2407', '3105', 1], ['3105', '2407', 1], ['0201', '1501', 1], ['2412', '1203', 1],
+    // These go to a stairwell and come back along the same hallway on the next floor.
+    ['1101', '1201', 2], ['2206', '3206', 2],
   ]) {
     const route = navigate(start, end);
     assert.equal(buildCompositeMap(route).sheets.length, expectedSheets);

@@ -339,8 +339,8 @@ test('floor descriptions reject out-of-range floors without creating unmapped ro
   for (const number of ['0101', '4201', '4301', '3401', '0501', '2501']) {
     assert.throws(() => parseRoom(number), /floor range/);
   }
-  // Building 3 includes floor 0, but no travel links cover it yet.
-  for (const number of ['0301']) assert.throws(() => parseRoom(number), /absent from the school map/);
+  // Building 3's floor 0 is reached by the Music stairwell.
+  assert.equal(parseRoom('301').number, '0301');
   assert.equal(parseRoom('201').number, '0201');
   assert.equal(parseRoom('2412').number, '2412');
 });

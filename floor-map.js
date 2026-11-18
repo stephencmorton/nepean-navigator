@@ -264,6 +264,22 @@ function splitFloorSections(previous, section, before, after) {
   section.split = {...cut, fromFloor: previous.floor, toFloor: section.floor, staircase};
   return true;
 }
+// True when the next floor's route runs back along the previous floor's route beyond the landing,
+// where one view would draw the two routes on top of each other.
+function retraces(previous, section) {
+  if (!previous.to || !section.from) return false;
+  const shift = difference(previous.to, section.from);
+  const segments = segmentsOf(previous.lines.filter(Boolean));
+  return segmentsOf(section.lines.filter(Boolean)).some(([a, b]) => {
+    const steps = Math.ceil(Math.hypot(...difference(b, a)) / 4);
+    for (let k = 0; k <= steps; k++) {
+      const point = a.map((value, axis) => value + (b[axis] - value) * k / (steps || 1) + shift[axis]);
+      if (Math.hypot(...difference(point, previous.to)) > 24 &&
+        segments.some(segment => projectToSegment(point, segment).distance < 8)) return true;
+    }
+    return false;
+  });
+}
 // Clip a polygon by a half-plane. Coordinates and cuts are in the same map space.
 export function clipFloorPolygon(polygon, cut) {
   const distance = point => difference(point, cut.point).reduce((sum, value, axis) => sum + value * cut.normal[axis], 0) * cut.sign;
@@ -279,9 +295,10 @@ export function clipFloorPolygon(polygon, cut) {
   }
   return result;
 }
-// One polygon per outline rectangle drawn for the building on any floor.
+// One polygon per outline rectangle drawn for the building on any floor, or only on the section's own floor.
 export function sectionPolygons(section) {
-  return footprints[section.building].map(([x0, y0, x1, y1]) => {
+  const rects = section.ownOutline ? geometry[`${section.building}-${section.floor}`].outline : footprints[section.building];
+  return rects.map(([x0, y0, x1, y1]) => {
     let polygon = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
     for (const cut of section.cuts ?? []) polygon = clipFloorPolygon(polygon, cut);
     return polygon;
@@ -422,9 +439,17 @@ export function buildCompositeMap({path, start, end}) {
     const section = sections[i], previous = sections[i - 1];
     let sheet = sheets.at(-1);
     const repeated = sheet?.sections.some(other => other.building === section.building);
-    const split = repeated && previous?.building === section.building &&
-      splitFloorSections(previous, section, sections[i - 2], sections[i + 1]);
-    if (!sheet || (repeated && !split)) {
+    const adjacent = repeated && previous?.building === section.building;
+    const split = adjacent && splitFloorSections(previous, section, sections[i - 2], sections[i + 1]);
+    // Floors that cannot be split at the landing share one view, with Up/Down cues, unless the route doubles back.
+    // The floor drawn on top shows only its own outline, preferring the later floor if its hallway is traced.
+    if (adjacent && !split && !retraces(previous, section)) {
+      const traced = candidate => candidate.lines.every(Boolean);
+      const top = traced(section) || !traced(previous) ? section : previous;
+      (top === section ? previous : section).under = true;
+      top.ownOutline = true;
+      if (top === section) section.cuts = [...previous.cuts ?? []];
+    } else if (!sheet || (repeated && !split)) {
       sheet = {sections: []}; sheets.push(sheet);
     }
     sheet.sections.push(section);

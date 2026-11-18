@@ -29,7 +29,7 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | [manifest.webmanifest](manifest.webmanifest) and [icons/](icons/) | App installation details and icons |
 | [sw.js](sw.js) | Offline caching and app updates |
 | [tools/floorplans.svg](tools/floorplans.svg) | Master Inkscape drawing of all four floors |
-| [tools/export_floor_svgs.py](tools/export_floor_svgs.py) | Exports each floor layer, without editor metadata or data-only elements, to `public/floor-0.svg` through `public/floor-3.svg` |
+| [tools/export_floor_svgs.py](tools/export_floor_svgs.py) | Exports each floor layer over the landscape layer, without editor metadata or data-only elements, to `public/floor-0.svg` through `public/floor-3.svg` |
 | [tools/extract_svg_map.py](tools/extract_svg_map.py) | Generates `map-geometry.js` from the named features in the master drawing, and optionally writes SVG observations to JSON for review |
 | [tests/](tests/) | Automated routing, map, and offline-cache checks |
 | [references/maps/](references/maps/) | Source images used to draw the map (not deployed) |
@@ -47,8 +47,8 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 
 The tools read element `id`s, so set the ID itself, not just the Inkscape label. Every feature name ends in `-<floor>`, and the extractor stops if that does not match the layer it is in.
 
-- **Canvas and layers.** One layer per floor, labelled `0_floor` to `3_floor`. Keep the viewBox and alignment unchanged, because the app maps it onto a 773 x 742 canvas. Hidden layers are fine; the tools ignore editing visibility.
-- **Buildings.** One `building-<b>-<floor>` rectangle for each building on each floor it has. Extra rectangles take a letter suffix, as in `building-1b-1`. A building's outline is the union of its rectangles on every floor.
+- **Canvas and layers.** One layer per floor, labelled `0_floor` to `3_floor`, above a `landscape` layer that is exported behind every floor. Keep the viewBox and alignment unchanged, because the app maps it onto a 773 x 742 canvas. Hidden layers are fine; the tools ignore editing visibility, but hidden elements inside a layer are skipped.
+- **Buildings.** One filled `building-<b>-<floor>` rectangle or path for each building on each floor it has, drawn before (below) the hallways. Extra shapes take a letter suffix, as in `building-1b-1`. A building's outline is the union of the bounding boxes of its shapes on every floor. Any other ID starting with `building` stops the export.
 - **Hallways.** Groups named `hallway-<floor>` or `hallway<b>-<floor>`, drawn as closed straight-sided paths or rectangles; curves are ignored. Each floor needs at least one. The centerline is split between buildings by their outlines (the deepest one, where outlines overlap). A piece outside every outline goes to the nearest building within 100 units. Keep each building's hallway in one connected piece.
 - **Ports.** Where two buildings' hallways come within 30 units on the same floor, the extractor records a port between them. Every connection in `data.js` needs a port at both ends, which the tests check.
 - **Open areas.** A building floor that is one large room, currently only the Cafeteria (1-1), has no hallway drawn and is marked `openArea: true` in `data.js`. The map draws straight lines across it. Every other mapped floor except Main's unsurveyed basement must have a hallway.
@@ -58,7 +58,15 @@ The tools read element `id`s, so set the ID itself, not just the Inkscape label.
 - **Entrances.** One `entrance-<letter>-<floor>` group containing the badge square and letter. Each entrance in `data.js` must be drawn on its floor. The floor 1 badges are redrawn over clipped plans.
 - **Rooms.** An optional `room-<number>` marker (a circle or ellipse, or a group containing one) at the room's door, on the layer for the room's floor digit and beside its building. It replaces the interpolated position. A descriptive suffix such as `room-1304-stage` is allowed and ignored; names shown in the app come from `data.js`. A marker on a different floor's layer is ignored with a warning.
 - **Data-only elements.** `room-*`, `rooms-*` and `approach-*` elements, and any `<floor>_data` sublayer such as `2_data`, are removed from the `public/` images. Draw them in any style that is easy to edit.
-- **Artwork.** Street names, the compass, building names and other artwork are not read. Do not use the red arrow style for anything inside a `steps-*` group except its arrow.
+- **Artwork.** Street names (`street-<floor>`), the compass (`compass-<floor>`), building names (`label-building<b>-<floor>`) and other artwork are not read. Do not use the red arrow style for anything inside a `steps-*` group except its arrow.
+
+### Who styles what
+
+If a style is right for someone looking at the plan with no route on it, it belongs in the drawing; if it depends on the route, the device or the app's state, it belongs in the app.
+
+- **The drawing** owns the building's own appearance: geometry, IDs and stacking order; the fills and strokes of building interiors, hallways, structures and the landscape; stairs, entrances, labels and fonts. It should look finished in Inkscape.
+- **The exporter** makes only mechanical web fixes. It strips editor and data-only content, and replaces the `Sans` font name, which browsers do not recognize, with `sans-serif`. It stops with an error for a malformed building ID, an unfilled building, a building drawn above a hallway, or a missing `landscape` layer. It never recolours the drawing.
+- **The app** (`route-map.js` and `style.css`) owns the route line, markers, stair cues, zoom and the area outside the drawing's canvas.
 
 ## Open survey questions
 
@@ -66,8 +74,7 @@ These need checking in the building before the drawing or `data.js` can be compl
 
 **Routes not yet known**
 - **Main's basement (2-0).** How you get down to it is unknown. No hallway is drawn, and stairwells A and B are not drawn on floor 0 although `data.js` lists them there.
-- **Music room (3-0).** The route is unclear, including whether stairwell `gstairs-music-0` leads there.
-- **Guidance (2201).** How you get from the floor 2 hallway to the door is unclear, so the drawing cannot describe it; its directions are hand-written in `data.js`. The `room-2201` marker sits just south of stairwell B.
+- **Music room (3-0).** The `music` stairwell from floor 1 down to floor 0 follows the drawing. Its letter, if it has one, and the floor 0 room numbers and their order are unknown; room positions there are estimates. The Music room is still listed as 1305, on floor 1.
 - **Cafeteria floor (1-1).** It is mapped as one open room. Its other rooms and exits are unknown.
 - **Cafeteria room number.** The app treats the Cafeteria as room 2103 on floor 2, but its `room-2103-cafeteria` marker is drawn on floor 1, so the marker is ignored. Which floor is the Cafeteria's door on, and is 2103 its number?
 
@@ -95,7 +102,7 @@ These need checking in the building before the drawing or `data.js` can be compl
 
 At mapped hallway junctions, `routing.js` calculates turns from the direction of arrival and the direction of departure; reverse travel reverses the turn. On floors marked `drawnDirections` (Art/English floor 2), the directions instead name each turn and hallway step along the traced route, joining steps with no turn between them into one phrase. Elsewhere, turns in the drawing and approaches to stairwells do not become spoken turns.
 
-`floor-map.js` has no browser dependencies: it traces the route and records selected stairwell movements. `route-map.js` draws the route without recomputing routing decisions. The map shows the whole complex, with the relevant floors for buildings along the route and ground-floor drawings for the remaining buildings. At a stairwell, adjacent floor drawings are clipped and overlaid at the landing within one map; floors are never shifted, even when their landings are drawn a few units apart. Only genuine route overlaps or missing landing geometry require a continuation below. Compatible floors in one building share a drawing.
+`floor-map.js` has no browser dependencies: it traces the route and records selected stairwell movements. `route-map.js` draws the route without recomputing routing decisions. The map shows the whole complex, with the relevant floors for buildings along the route and ground-floor drawings for the remaining buildings. At a stairwell, adjacent floor drawings are clipped and overlaid at the landing within one map; floors are never shifted, even when their landings are drawn a few units apart. Where no straight seam at the landing separates the two floors' routes, the later floor (or the one with a traced hallway) is drawn over the other within its own floor's building outline, and the Up/Down cue marks the stairs. Only a route that comes back along the same hallway on the next floor continues on a second map below. Compatible floors in one building share a drawing.
 
 Rooms with a `room-*` marker in the drawing use it. Other room dots are estimated along the hallway centerlines: numbers increase south to north (left to right on the drawing), or east to west (bottom to top). Named exceptions show an approach point rather than an invented exact room location. Where a hallway is not drawn, such as Main's basement, that segment is left undrawn and the map refers to the written directions.
 

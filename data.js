@@ -34,6 +34,8 @@ export const school = {
       '2-1': {signature: 'main-upper', primary: [[212, 550], [277, 550], [381, 550], [474, 550], [554, 550]]},
       '2-2': {signature: 'main-upper', primary: [[212, 550], [277, 550], [381, 550], [474, 550], [554, 550]]},
       '2-3': {signature: 'main-upper', primary: [[212, 550], [277, 550], [381, 550], [474, 550], [554, 550]]},
+      // The basement room numbers and their order are unknown, so these room dots are rough estimates.
+      '3-0': {signature: 'music', primary: [[646, 549], [645, 353], [591, 353]]},
       '3-1': {signature: 'auditorium', primary: [[569, 504], [569, 340]]},
       '3-2': {signature: 'music-upper', primary: [[572, 617], [572, 408], [569, 408], [569, 340]]},
       '3-3': {signature: 'auditorium-top', primary: [[561, 550], [647, 550], [647, 370], [704, 370]]},
@@ -63,7 +65,10 @@ export const school = {
       A: {side: 'north', floors: [0, 1, 2, 3]},
     },
     // The south-side hallway stairs descend half a flight from logical floor 2 to the floor-1 connector.
-    3: {hallway: {kind: 'hallway', side: 'east', position: 'south', extent: 'half-flight', steps: 'g224', floors: [1, 2]}},
+    3: {
+      hallway: {kind: 'hallway', side: 'east', position: 'south', extent: 'half-flight', steps: 'g224', floors: [1, 2]},
+      music: {side: 'west', floors: [0, 1]},
+    },
     4: {
       I: {side: 'east', floors: [0, 1, 2]},
       J: {side: 'west', floors: [0, 1, 2]},

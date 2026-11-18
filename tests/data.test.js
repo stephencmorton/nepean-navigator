@@ -61,12 +61,21 @@ test('the generated geometry covers every mapped floor, and exports show one flo
     if (node !== '2-0' && !plan.openArea) assert.ok(geometry[node].paths.length, `No centerlines generated for ${node}`);
     assert.ok(geometry[node].paths.every(line => line.length >= 2));
   }
+  for (const [, id] of source.matchAll(/\bid="(building[^"]*)"/g)) {
+    assert.match(id, /^building-\d[a-z]?-\d+$/, `${id} follows the building naming rule`);
+  }
+  const landscapeId = source.match(/<g\b[^>]*>/g).find(tag => tag.includes('inkscape:label="landscape"'))?.match(/\bid="([^"]+)"/)[1];
+  assert.ok(landscapeId, 'The drawing has a landscape layer');
   const layerTransforms = new Set();
   for (let floor = 0; floor <= 3; floor++) {
     assert.match(source, new RegExp(`inkscape:label="${floor}_floor"`));
     const svg = readFileSync(new URL(`../public/floor-${floor}.svg`, import.meta.url), 'utf8');
     assert.match(svg, new RegExp(`viewBox="${sourceViewBox.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
-    layerTransforms.add(svg.match(/<g\b[^>]*>/)[0].match(/transform="([^"]*)"/)?.[1]);
+    const landscape = svg.match(/<g\b[^>]*>/)[0];
+    assert.match(landscape, new RegExp(`id="${landscapeId}"`), `Floor ${floor} export starts with the landscape layer`);
+    assert.doesNotMatch(landscape, /display:\s*none/, `Floor ${floor} export shows the landscape layer`);
+    assert.doesNotMatch(svg, /font-family:\s*'?Sans'?(;|")/, `Floor ${floor} export uses only fonts browsers recognize`);
+    layerTransforms.add(svg.match(/<g\b[^>]*\btransform="([^"]*)"/)[1]);
     assert.doesNotMatch(svg, /<text\b[^>]*xml:space="preserve"[^>]*>\s+</, `Floor ${floor} export adds no visible spaces to text`);
     assert.doesNotMatch(svg, /inkscape:|sodipodi:/, `Floor ${floor} export has no editor metadata`);
     assert.doesNotMatch(svg, /id="(room-\d{4}|rooms-|approach-)/, `Floor ${floor} export has no data-only markers`);
