@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {school} from '../data.js';
 import {entrances, rooms} from '../map-geometry.js';
 import {graph, findPath, navigate, parseStart, parseRoom} from '../routing.js';
-import {floorPlans, clipFloorPolygon, pointAlong, roomMapPoint, hallwayPath, buildCompositeMap, sheetRoutePoints, routeViewBox, sheetMapViewBox, scaleViewBox} from '../floor-map.js';
+import {floorPlans, clipFloorPolygon, pointAlong, roomMapPoint, hallwayPath, buildCompositeMap, sheetRoutePoints, routeViewBox, sheetMapViewBox, scaleViewBox, tidyRoute, contextLayers} from '../floor-map.js';
 
 // True when a point lies on one of a plan's generated centerline segments.
 const onTrace = (plan, point) => plan.paths.some(points => points.slice(1).some((end, i) => {
@@ -113,7 +113,7 @@ test('different geometries and repeated building visits are separated in route o
   for (const sheet of map.sheets) {
     for (let i = 1; i < sheet.sections.length; i++) {
       if (sheet.sections.slice(0, i).some(section => section.building === sheet.sections[i].building)) {
-        assert.ok(sheet.sections[i].split);
+        assert.ok(sheet.sections[i].split || sheet.sections[i].ownOutline || sheet.sections[i - 1].ownOutline);
         assert.equal(sheet.sections[i - 1].building, sheet.sections[i].building);
       }
     }
@@ -162,6 +162,12 @@ test('floor images share a canvas and are explicitly staged and cached', () => {
     assert.ok(worker.includes(`'${asset}'`));
     assert.ok(workflow.includes(asset));
   }
+  const context = readFileSync(new URL('../public/floor-1-context.svg', import.meta.url), 'utf8');
+  boxes.push(context.match(/viewBox="([^"]+)"/)[1]);
+  assert.match(context, /id="building-\d/);
+  assert.doesNotMatch(context, /id="hallway/i, 'The context image omits hallways');
+  assert.ok(worker.includes("'public/floor-1-context.svg'"));
+  assert.ok(workflow.includes('public/floor-1-context.svg'));
   assert.equal(new Set(boxes).size, 1);
   assert.ok(worker.includes("'floor-map.js'"));
   assert.ok(workflow.includes('floor-map.js'));
@@ -230,6 +236,20 @@ test('hallway floor changes use their separate source drawings without a stairwe
     assert.deepEqual(hallway.map(section => section.floor).sort(), [1, 2]);
     assert.ok(hallway.every(section => !section.split?.staircase && !section.movements.length));
   }
+});
+test('drawn routes drop junction zig-zags and landing stubs but keep real corners', () => {
+  assert.deepEqual(tidyRoute([[571, 550], [571, 504], [574, 500], [570, 501], [565, 496], [565, 480.6], [566.4, 480.6]]),
+    [[571, 550], [571, 504], [565, 496], [566.4, 480.6]]);
+  assert.deepEqual(tidyRoute([[0, 0], [100, 0], [100, 50]]), [[0, 0], [100, 0], [100, 50]]);
+});
+test('buildings off the route show a connected route floor nearest the destination, or a bare ground floor', () => {
+  const shown = (start, end) => contextLayers(buildCompositeMap(navigate(start, end)).sheets[0])
+    .map(({building, floor, bare}) => `${building}-${floor}${bare ? ' bare' : ''}`);
+  // The Cafeteria (1-1) has no floor 1 connection, and the Gym has no floor 2 or 3.
+  assert.deepEqual(shown('1203', '1501'), ['1-1 bare', '3-1', '4-1']);
+  // 4-2 joins only 3-2, which is not drawn when Music/Auditorium is shown on floor 3.
+  assert.deepEqual(shown('2205', '3307'), ['1-3', '4-1 bare', '5-1 bare']);
+  assert.deepEqual(shown('2205', '1304'), ['1-2', '4-1', '5-1']);
 });
 test('stairwell clipping preserves the correct half of an image, and only doubling back needs another view', () => {
   const polygon = [[0, 0], [10, 0], [10, 10], [0, 10]];

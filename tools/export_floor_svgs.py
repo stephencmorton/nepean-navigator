@@ -4,7 +4,8 @@
 Each export keeps only its own floor layer, the landscape layer behind it, and
 the shared definitions. Inkscape and Sodipodi editor metadata is removed, as are
 data-only elements that exist only for the extractor: room-* markers, rooms-*
-and approach-* paths, and any <floor>_data sublayer. The drawing owns its
+and approach-* paths, and any <floor>_data sublayer. floor-1-context.svg is the
+floor 1 export without hallways, for buildings the route does not use. The drawing owns its
 styling; the export only renames the Sans font and checks the landscape layer
 and building names, fills and stacking.
 """
@@ -49,6 +50,14 @@ def strip_for_users(element: ET.Element) -> None:
             strip_for_users(child)
     for name in [name for name in element.attrib if name.startswith(EDITOR_NAMESPACES)]:
         del element.attrib[name]
+
+
+def remove_hallways(element: ET.Element) -> None:
+    for child in list(element):
+        if child.get("id", "").lower().startswith("hallway"):
+            element.remove(child)
+        else:
+            remove_hallways(child)
 
 
 def floor_layers(root: ET.Element, source: Path) -> dict[int, ET.Element]:
@@ -142,6 +151,11 @@ def export_layers(source: Path, output_dir: Path) -> list[Path]:
         # Keep the source whitespace: re-indenting would add visible spaces inside xml:space="preserve" text.
         ET.ElementTree(exported).write(output, encoding="UTF-8", xml_declaration=True)
         outputs.append(output)
+        if floor == 1:
+            remove_hallways(exported)
+            output = output_dir / "floor-1-context.svg"
+            ET.ElementTree(exported).write(output, encoding="UTF-8", xml_declaration=True)
+            outputs.append(output)
     return outputs
 
 
@@ -151,7 +165,7 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=Path("public"))
     args = parser.parse_args()
     outputs = export_layers(args.source, args.output_dir)
-    print(f"Exported {len(outputs)} floor layers from {args.source} to {args.output_dir}")
+    print(f"Exported {len(outputs)} floor images from {args.source} to {args.output_dir}")
     return 0
 
 

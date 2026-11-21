@@ -1,7 +1,7 @@
 import {school} from './data.js';
 import {entranceArtwork, footprints} from './map-geometry.js';
 import {floorName} from './routing.js';
-import {buildCompositeMap, sectionPolygons, routeViewBox, sheetMapViewBox, constrainViewBox, scaleViewBox} from './floor-map.js';
+import {buildCompositeMap, contextLayers, sectionPolygons, routeViewBox, sheetMapViewBox, constrainViewBox, scaleViewBox, tidyRoute} from './floor-map.js';
 
 export const phoneLandscape = matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 600px)');
 const NS = 'http://www.w3.org/2000/svg';
@@ -24,11 +24,7 @@ function renderFloorComposite(route) {
       const separator = document.createElement('p'); separator.className = 'floor-map-continuation';
       separator.textContent = '\u2301 Continue on the next plan'; container.append(separator);
     }
-    // Keep unused buildings in their ground-floor layout as context, without adding route stages.
-    const context = Object.keys(footprints).map(Number)
-      .filter(building => !sheet.sections.some(section => section.building === building))
-      .map(building => ({building, floor: 1}));
-    const layers = [...context, ...sheet.sections.filter(section => section.under), ...sheet.sections.filter(section => !section.under)];
+    const layers = [...contextLayers(sheet), ...sheet.sections.filter(section => section.under), ...sheet.sections.filter(section => !section.under)];
     const [x, y, width, height] = sheetMapViewBox(sheet);
     const svg = element('svg', {viewBox: `${x} ${y} ${width} ${height}`, preserveAspectRatio: 'xMidYMid meet', role: 'img', class: 'floor-route-map', 'aria-labelledby': `floor-map-title-${sheetIndex} floor-map-desc-${sheetIndex}`});
     svg.append(element('title', {id: `floor-map-title-${sheetIndex}`}, 'Route across floor plans'));
@@ -47,14 +43,17 @@ function renderFloorComposite(route) {
       for (const polygon of sectionPolygons({building})) contextMask.append(element('polygon', {points: polyline(polygon), fill: '#000'}));
     }
     defs.append(contextMask);
-    svg.append(element('image', {href: './public/floor-1.svg', x: 0, y: 0, width: 773, height: 742, preserveAspectRatio: 'none', mask: `url(#${contextMaskId})`}));
+    // Hallways outside the outlines stay in the backdrop when floor 1 is shown with its hallways.
+    const backdrop = layers.some(layer => layer.floor === 1 && !layer.bare) ? 'floor-1' : 'floor-1-context';
+    svg.append(element('image', {href: `./public/${backdrop}.svg`, x: 0, y: 0, width: 773, height: 742, preserveAspectRatio: 'none', mask: `url(#${contextMaskId})`}));
     for (const section of layers) {
       const clipId = `floor-section-${sequence++}`;
       const clip = element('clipPath', {id: clipId});
       for (const polygon of sectionPolygons(section)) clip.append(element('polygon', {points: polyline(polygon)}));
       defs.append(clip);
+      const image = section.bare ? 'floor-1-context' : `floor-${section.floor}`;
       const layer = element('g', {class: 'floor-plan-layer', 'data-building': section.building, 'data-floor': section.floor});
-      layer.append(element('image', {href: `./public/floor-${section.floor}.svg`, x: 0, y: 0, width: 773, height: 742, preserveAspectRatio: 'none', 'clip-path': `url(#${clipId})`}));
+      layer.append(element('image', {href: `./public/${image}.svg`, x: 0, y: 0, width: 773, height: 742, preserveAspectRatio: 'none', 'clip-path': `url(#${clipId})`}));
       svg.append(layer);
     }
     for (const section of sheet.sections) {
@@ -72,7 +71,7 @@ function renderFloorComposite(route) {
     for (let i = 0; i < sheet.sections.length; i++) {
       const section = sheet.sections[i];
       for (const points of section.lines) if (points?.length > 1) {
-        const line = element('polyline', {points: polyline(points), class: 'floor-route-line', 'marker-end': `url(#${arrowId})`}); svg.append(line);
+        const line = element('polyline', {points: polyline(tidyRoute(points)), class: 'floor-route-line', 'marker-end': `url(#${arrowId})`}); svg.append(line);
       }
       const next = sheet.sections[i + 1];
       if (next && section.to && next.from) {
@@ -118,7 +117,7 @@ function renderFloorComposite(route) {
       entranceClip.append(element('rect', {x: point[0] - 11, y: point[1] - 11, width: 22, height: 22}));
     }
     defs.append(entranceClip);
-    svg.append(element('image', {href: './public/floor-1.svg', x: 0, y: 0, width: 773, height: 742,
+    svg.append(element('image', {href: `./public/${backdrop}.svg`, x: 0, y: 0, width: 773, height: 742,
       preserveAspectRatio: 'none', 'clip-path': `url(#${entranceClipId})`, class: 'floor-entrance-artwork', 'pointer-events': 'none'}));
     container.append(svg);
     for (const section of sheet.sections.filter(section => section.lines.some(line => !line))) {

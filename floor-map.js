@@ -223,6 +223,28 @@ export function drawnRouteEvents(path, index, start, end) {
   }
   return events.sort((a, b) => a.at - b.at);
 }
+// For display only: medial-axis junctions sit a few units off the hallway's centre and landings a unit off its
+// centerline, so drop short back-and-forth legs and vertices within a small tolerance of a straight line.
+export function tidyRoute(points, tolerance = 2.5) {
+  const line = [...points];
+  for (let i = 1; i < line.length - 1;) {
+    const inLeg = difference(line[i], line[i - 1]), outLeg = difference(line[i + 1], line[i]);
+    const lengths = Math.hypot(...inLeg) * Math.hypot(...outLeg);
+    const reverses = lengths && (inLeg[0] * outLeg[0] + inLeg[1] * outLeg[1]) / lengths < -.5;
+    if (reverses && Math.min(Math.hypot(...inLeg), Math.hypot(...outLeg)) < 6) {
+      line.splice(i, 1); i = Math.max(1, i - 1);
+    } else i++;
+  }
+  const simplify = (start, end) => {
+    let farthest = -1, distance = tolerance;
+    for (let i = start + 1; i < end; i++) {
+      const candidate = projectToSegment(line[i], [line[start], line[end]]).distance;
+      if (candidate > distance) [farthest, distance] = [i, candidate];
+    }
+    return farthest < 0 ? [line[start]] : [...simplify(start, farthest), ...simplify(farthest, end)];
+  };
+  return line.length > 2 ? [...simplify(0, line.length - 1), line.at(-1)] : line;
+}
 // Partition adjacent floor drawings at their shared landing, preserving route geometry.
 function splitFloorSections(previous, section, before, after) {
   if (!previous.to || !section.from) return false;
@@ -303,6 +325,27 @@ export function sectionPolygons(section) {
     for (const cut of section.cuts ?? []) polygon = clipFloorPolygon(polygon, cut);
     return polygon;
   }).filter(polygon => polygon.length >= 3);
+}
+
+// Buildings off the route show the route floor, nearest the destination, on which they connect to a building
+// drawn on that same floor; otherwise their ground floor without hallways.
+export function contextLayers(sheet) {
+  const used  = new Set(sheet.sections.map(section => section.building));
+  const drawn = new Set(sheet.sections.map(section => `${section.building}-${section.floor}`));
+  const shown = new Map();
+  for (const floor of new Set(sheet.sections.map(section => section.floor).reverse())) {
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const {from, to} of school.connections) for (const [near, far] of [[from, to], [to, from]]) {
+        const building = Number(far.split('-')[0]);
+        if (!drawn.has(near) || near.split('-')[1] !== String(floor) || far !== `${building}-${floor}`
+          || used.has(building) || shown.has(building)) continue;
+        shown.set(building, floor); drawn.add(far); grew = true;
+      }
+    }
+  }
+  return Object.keys(footprints).map(Number).filter(building => !used.has(building))
+    .map(building => shown.has(building) ? {building, floor: shown.get(building)} : {building, floor: 1, bare: true});
 }
 
 export function sheetRoutePoints(sheet) {

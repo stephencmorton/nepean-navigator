@@ -150,8 +150,8 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 .map-viewport {touch-action: pan-x pan-y pinch-zoom;}
 .directions-label {margin: 0 0 1rem; font-size: .875rem; font-weight: 600;}
 @media (orientation: portrait) and (max-width: 700px) and (pointer: coarse) {
-  #map-orientation-hint {display: flex; align-items: center; justify-content: center; gap: .7rem; margin: 0 0 1.5rem; padding: 1rem; border: 2px solid #d5b8ea; border-radius: var(--radius); color: var(--accent-dark); background: #f5effa; text-align: center; font-size: 1rem; font-weight: 700;}
-  #map-orientation-hint span {font-size: 1.7rem; line-height: 1;}
+  #map-orientation-hint {display: flex; align-items: center; justify-content: center; gap: .45rem; margin: 0 0 1.25rem; padding: .45rem .8rem; border: 1px solid #e3d3f0; border-radius: var(--radius); color: var(--accent-dark); background: #f9f5fc; text-align: center; font-size: .875rem; font-weight: 600;}
+  #map-orientation-hint span {font-size: 1.15rem; line-height: 1;}
   #route-map-panel {display: none;}
 }
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 600px) {
