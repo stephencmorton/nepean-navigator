@@ -84,8 +84,8 @@
       <h3 class="directions-label">Walking directions</h3>
       <ol id="steps"></ol>
     </section>
-    <div id="number-intro" aria-hidden="true" hidden>
-      <p class="intro-name"></p>
+    <div id="number-intro" role="dialog" aria-modal="true" aria-labelledby="intro-name" tabindex="-1" hidden>
+      <p id="intro-name" class="intro-name"></p>
       <div class="intro-number">
         <strong class="number-digits floor-group"></strong>
         <strong class="number-digits building-group"></strong>
@@ -96,7 +96,7 @@
         <p class="intro-caption building-group"><span class="number-key">Building</span><span class="number-value"></span></p>
         <p class="intro-caption room-group"><span class="number-key">Room</span><span class="number-value"></span></p>
       </div>
-      <p class="intro-skip">Tap or press a key to skip</p>
+      <p class="intro-skip">Tap or press Escape to skip</p>
     </div>
     <footer>
       <div id="install-control" hidden>

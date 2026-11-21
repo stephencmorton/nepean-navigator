@@ -124,6 +124,7 @@ body:has(.info-dialog[open]) {overflow: hidden;}
 @keyframes number-reveal {from {opacity: 0; transform: translateY(-.4rem);} to {opacity: 1; transform: translateY(0);}}
 /* The destination's digits are introduced over the page before its directions. */
 #number-intro {position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.75rem; padding: 1rem; background: rgb(245 246 248 / .97); text-align: center; cursor: pointer;}
+#number-intro:focus {outline: none;}
 #number-intro[hidden] {display: none;}
 .intro-name {margin: 0; font-size: 1.3rem; font-weight: 700;}
 .intro-number {display: grid; grid-template-columns: repeat(4, 3.5rem);}

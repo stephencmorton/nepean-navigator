@@ -65,7 +65,7 @@ exampleNumberCard.replaceChildren(explainRoomNumber('3204', 'Example'));
 const numberIntro = document.querySelector('#number-intro');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let closeNumberIntro = () => {};
-// Introduce the destination's floor, building, and room digits over the drawn route; any tap or key closes it.
+// Introduce the destination's floor, building, and room digits over the drawn route; tap or Escape closes it.
 function playNumberIntro(number) {
   closeNumberIntro();
   const name = school.knownRooms[number]?.name;
@@ -85,19 +85,21 @@ function playNumberIntro(number) {
     clearTimeout(timer);
     numberIntro.hidden = true;
     numberIntro.removeEventListener('click', close);
-    document.removeEventListener('keydown', onKey, true);
+    numberIntro.removeEventListener('keydown', onKey);
     closeNumberIntro = () => {};
+    title.focus({preventScroll: true});
   };
-  // A held key repeats the one that submitted the form; modifier keys alone are not a request to skip.
+  // Tab closes without being cancelled, so focus moves on from the route title instead of behind the overlay.
   const onKey = event => {
-    if (event.repeat || ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
-    event.preventDefault();
+    if (event.repeat || !['Escape', 'Enter', ' ', 'Tab'].includes(event.key)) return;
+    if (event.key !== 'Tab') event.preventDefault();
     close();
   };
   closeNumberIntro = close;
   numberIntro.addEventListener('click', close);
-  document.addEventListener('keydown', onKey, true);
+  numberIntro.addEventListener('keydown', onKey);
   numberIntro.hidden = false;
+  numberIntro.focus({preventScroll: true});
   if (reducedMotion.matches) {
     timer = setTimeout(close, 6000);
     return;

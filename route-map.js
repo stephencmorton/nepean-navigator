@@ -128,7 +128,11 @@ function renderFloorComposite(route) {
   });
   return {container, model};
 }
+let mapViewControl;
 export function renderRouteMap(container, route) {
+  mapViewControl?.abort();
+  mapViewControl = new AbortController();
+  const {signal} = mapViewControl;
   container.replaceChildren();
   container.hidden = !route.path;
   if (!route.path) return;
@@ -205,5 +209,5 @@ export function renderRouteMap(container, route) {
     });
   };
   updateViewBoxes();
-  phoneLandscape.addEventListener('change', updateViewBoxes);
+  phoneLandscape.addEventListener('change', updateViewBoxes, {signal});
 }

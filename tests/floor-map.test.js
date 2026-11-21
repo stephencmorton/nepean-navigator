@@ -100,6 +100,12 @@ test('rotated phone map keeps an explicit height and has no zoom controls', () =
   assert.match(style, /#route-map \.floor-route-map \{[^}]*touch-action: none;/);
   assert.match(renderer, /addEventListener\('pointerdown'/);
   assert.match(renderer, /addEventListener\('pointermove'/);
+  assert.match(renderer, /phoneLandscape.addEventListener\('change', updateViewBoxes, \{signal\}\)/);
+  const app = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(page, /id="number-intro"[^>]*role="dialog"/);
+  assert.match(page, /aria-labelledby="intro-name"/);
+  assert.doesNotMatch(app, /addEventListener\('keydown', onKey, true\)/);
+  assert.match(app, /numberIntro.addEventListener\('keydown', onKey\)/);
   assert.match(renderer, /class: 'floor-entrance-artwork'/);
   assert.match(renderer, /entranceArtwork/);
   assert.doesNotMatch(page, /map-controls|data-map-action|Fit route|Whole map/);
