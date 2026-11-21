@@ -29,10 +29,10 @@ Visit http://localhost:8000/, edit files, and reload the page. Stop the server w
 | [manifest.webmanifest](manifest.webmanifest) and [icons/](icons/) | App installation details and icons |
 | [sw.js](sw.js) | Offline caching and app updates |
 | [tools/floorplans.svg](tools/floorplans.svg) | Master Inkscape drawing of all four floors |
-| [tools/export_floor_svgs.py](tools/export_floor_svgs.py) | Exports each floor layer over the landscape layer, without editor metadata or data-only elements, to `public/floor-0.svg` through `public/floor-3.svg` |
+| [tools/export_floor_svgs.py](tools/export_floor_svgs.py) | Exports each floor layer over the landscape layer, without editor metadata or data-only elements, to `public/floor-0.svg` through `public/floor-3.svg`, plus `public/floor-1-context.svg` without hallways |
 | [tools/extract_svg_map.py](tools/extract_svg_map.py) | Generates `map-geometry.js` from the named features in the master drawing, and optionally writes SVG observations to JSON for review |
 | [tests/](tests/) | Automated routing, map, and offline-cache checks |
-| [references/maps/](references/maps/) | Source images used to draw the map (not deployed) |
+| [references/maps/](references/maps/) | Early layout sketches, kept for cross-checking the drawing; not used by the app or tools, and not deployed |
 
 ## Updating the floor plans
 

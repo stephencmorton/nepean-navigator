@@ -6,7 +6,7 @@ It's a Progressive Web App (PWA), which means you can view it as a web page whil
 
 [Open NHS Wayfinder](https://stephencmorton.github.io/nepean-navigator/)
 
-![Screenshot](docs/images/route-example.png)
+<img src="docs/images/route-example.png" alt="Screenshot of a route from the Library to room 1304" width="400">
 
 ## Using the app
 
@@ -16,7 +16,7 @@ It's a Progressive Web App (PWA), which means you can view it as a web page whil
 
 Room numbers have four digits: floor, building, and two room digits. You can omit the leading zero for basement rooms: enter `201` or `0201`.
 
-The directions are a numbered sequence to follow. The map below them shows the whole school, with the floors you will use drawn for the buildings along your route. Where you change floors at a stairwell, the two floor drawings are joined at the stairs (marked with a zigzag), and the stairwells you use are circled with Up/Down labels. Room positions on the map are estimates; the written directions are the most accurate guide. On a phone, rotate to landscape for a larger map you can pinch to zoom and drag to pan.
+The directions are a numbered sequence to follow. The map above them shows the whole school, with the floors you will use drawn for the buildings along your route. Other buildings show a floor you travel on if their hallways connect to your route there, and otherwise just their outline. Where you change floors at a stairwell, the two floor drawings are joined at the stairs (sometimes marked with a zigzag), and the stairwells you use are circled with Up/Down labels. A route that comes back along the same hallway on another floor continues on a second map. Room positions on the map are estimates; the written directions are the most accurate guide. On a phone held upright, the map is hidden so the directions come first; rotate to landscape for a full-screen map you can pinch to zoom and drag to pan.
 
 ## Understanding room numbering
 
